@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { SMARTScore, QuizQuestion, AdminDashboardData } from '../types';
+import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
@@ -47,45 +47,163 @@ export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, f
   return JSON.parse(jsonStr);
 };
 
-// Function to generate a quiz question from Gemini API
-export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion> => {
+// Function to generate a complete quiz based on goal and reflection
+export const generatePersonalizedQuiz = async (goal: string, reflection?: string): Promise<Quiz> => {
     if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for generateQuizQuestion.");
-        await new Promise(resolve => setTimeout(resolve, 800));
+        console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for generatePersonalizedQuiz.");
+        await new Promise(resolve => setTimeout(resolve, 1500));
         return {
-            question: `What is the primary purpose of a 'for' loop in Python? (Mock Response)`,
-            options: [
-                'To declare a variable',
-                'To execute a block of code repeatedly for each item in a sequence',
-                'To handle errors and exceptions',
-                'To define a function'
-            ],
-            correctAnswer: 'To execute a block of code repeatedly for each item in a sequence'
+            title: "Personal Development Quiz",
+            description: "Test your knowledge about achieving your goals",
+            questions: [
+                {
+                    question: "What makes a goal 'SMART'?",
+                    options: ["Simple, Meaningful, Achievable, Realistic, Timely", "Specific, Measurable, Achievable, Relevant, Time-bound", "Strong, Motivating, Ambitious, Rewarding, Trackable", "Strategic, Manageable, Actionable, Results-focused, Targeted"],
+                    correctAnswer: "Specific, Measurable, Achievable, Relevant, Time-bound",
+                    explanation: "SMART goals are Specific, Measurable, Achievable, Relevant, and Time-bound."
+                },
+                {
+                    question: "What is the most effective way to build a new habit?",
+                    options: ["Start with 30-minute sessions", "Begin with tiny, 2-minute actions", "Only practice when motivated", "Set multiple habits at once"],
+                    correctAnswer: "Begin with tiny, 2-minute actions",
+                    explanation: "Starting small makes it easier to be consistent and build momentum."
+                },
+                {
+                    question: "When facing a setback in your goals, what's the best approach?",
+                    options: ["Give up and try something else", "Analyze what went wrong and adjust your approach", "Push harder with the same strategy", "Take a long break before trying again"],
+                    correctAnswer: "Analyze what went wrong and adjust your approach",
+                    explanation: "Setbacks are learning opportunities that help you refine your strategy."
+                },
+                {
+                    question: "What's the most important factor in maintaining long-term motivation?",
+                    options: ["Rewards and incentives", "Connecting goals to your deeper values", "Peer pressure from others", "Fear of failure"],
+                    correctAnswer: "Connecting goals to your deeper values",
+                    explanation: "When goals align with your core values, motivation becomes more sustainable."
+                },
+                {
+                    question: "How should you break down a large, overwhelming goal?",
+                    options: ["Into monthly milestones only", "Into small, actionable daily tasks", "Into yearly phases", "Keep it as one big goal"],
+                    correctAnswer: "Into small, actionable daily tasks",
+                    explanation: "Breaking goals into daily actions makes them less overwhelming and more achievable."
+                },
+                {
+                    question: "What's the best way to track your progress?",
+                    options: ["Only check at the end", "Daily reflection and measurement", "Weekly reviews only", "When you feel like it"],
+                    correctAnswer: "Daily reflection and measurement",
+                    explanation: "Regular tracking helps you stay on course and make adjustments when needed."
+                },
+                {
+                    question: "When is the best time to review and adjust your goals?",
+                    options: ["Never, goals should remain fixed", "Only when you fail", "Regularly through scheduled reviews", "When others suggest changes"],
+                    correctAnswer: "Regularly through scheduled reviews",
+                    explanation: "Regular reviews ensure your goals remain relevant and achievable as circumstances change."
+                },
+                {
+                    question: "What's the most effective way to overcome procrastination?",
+                    options: ["Wait for motivation to strike", "Use the 2-minute rule: start with 2 minutes", "Set harder deadlines", "Punish yourself for delays"],
+                    correctAnswer: "Use the 2-minute rule: start with 2 minutes",
+                    explanation: "Starting with just 2 minutes overcomes the initial resistance and often leads to continued work."
+                },
+                {
+                    question: "How important is celebrating small wins?",
+                    options: ["Not important, focus on big goals", "Very important for maintaining motivation", "Only celebrate final achievements", "Celebrations are distracting"],
+                    correctAnswer: "Very important for maintaining motivation",
+                    explanation: "Celebrating small wins reinforces positive behavior and maintains momentum."
+                },
+                {
+                    question: "What's the best approach when you don't feel motivated?",
+                    options: ["Wait until motivation returns", "Rely on discipline and systems", "Lower your standards", "Skip the day completely"],
+                    correctAnswer: "Rely on discipline and systems",
+                    explanation: "Motivation is temporary, but good systems and discipline create consistent progress."
+                },
+                {
+                    question: "How should you handle conflicting goals?",
+                    options: ["Try to do everything at once", "Prioritize based on values and impact", "Abandon the harder goals", "Let others decide for you"],
+                    correctAnswer: "Prioritize based on values and impact",
+                    explanation: "Clear priorities help you focus energy on what matters most to you."
+                },
+                {
+                    question: "What's the role of accountability in goal achievement?",
+                    options: ["Not necessary if you're disciplined", "Essential for increasing commitment", "Only useful for big goals", "Can be replaced by willpower"],
+                    correctAnswer: "Essential for increasing commitment",
+                    explanation: "Accountability creates external motivation and helps maintain consistency in your efforts."
+                }
+            ]
         };
     }
 
+    const prompt = `Create a personalized 12-question multiple-choice quiz based on:
+    
+    Goal: "${goal}"
+    ${reflection ? `Recent Reflection: "${reflection}"` : ''}
+    
+    Instructions:
+    - Generate exactly 12 questions that help the user learn about achieving their specific goal
+    - Mix questions about goal-setting strategies, overcoming obstacles, productivity, motivation, and habits
+    - Make questions relevant to their goal and reflection content
+    - Each question should have 4 options with one correct answer
+    - Include practical, actionable knowledge
+    - Provide brief explanations for correct answers
+    
+    Topics to cover:
+    1. SMART goal principles
+    2. Breaking down large goals
+    3. Overcoming procrastination
+    4. Building motivation
+    5. Creating accountability
+    6. Time management
+    7. Habit formation
+    8. Dealing with setbacks
+    9. Measuring progress
+    10. Celebrating milestones
+    11. Goal-specific strategies
+    12. Reflection and adjustment`;
+
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Generate a multiple-choice quiz question based on this topic: "${topic}". The question should have 4 options, with one correct answer.`,
+        contents: prompt,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
                 type: Type.OBJECT,
                 properties: {
-                    question: { type: Type.STRING },
-                    options: {
+                    title: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    questions: {
                         type: Type.ARRAY,
-                        items: { type: Type.STRING },
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                question: { type: Type.STRING },
+                                options: {
+                                    type: Type.ARRAY,
+                                    items: { type: Type.STRING },
+                                },
+                                correctAnswer: { type: Type.STRING },
+                                explanation: { type: Type.STRING },
+                            },
+                            required: ["question", "options", "correctAnswer", "explanation"],
+                        },
                     },
-                    correctAnswer: { type: Type.STRING },
                 },
-                required: ["question", "options", "correctAnswer"],
+                required: ["title", "description", "questions"],
             },
         },
     });
 
     const jsonStr = response.text.trim();
     return JSON.parse(jsonStr);
+};
+
+// Legacy function for backward compatibility
+export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion> => {
+    const quiz = await generatePersonalizedQuiz(topic);
+    return quiz.questions[0] || {
+        question: "What is the most important factor in achieving goals?",
+        options: ["Luck", "Consistent daily action", "Perfect planning", "Waiting for motivation"],
+        correctAnswer: "Consistent daily action",
+        explanation: "Consistency beats perfection when it comes to achieving goals."
+    };
 };
 
 // Function to generate a weekly summary from Gemini API

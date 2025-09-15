@@ -30,26 +30,22 @@ const MOCK_DB: MockDB = {
                 {
                     date: '2025-09-15T10:00:00.000Z',
                     goal: { text: 'Complete Chapter 5 of Algebra textbook.', completed: true },
-                    reflection: { text: 'The concepts were challenging but I feel I have a good grasp now.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH },
-                    quizEvaluation: { score: 5, total: 5, feedback: 'Great job!' }
+                    reflection: { text: 'The concepts were challenging but I feel I have a good grasp now.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH }
                 },
                 {
                     date: '2025-09-14T10:00:00.000Z',
                     goal: { text: 'Practice 5 loop problems in Python.', completed: true },
-                    reflection: { text: 'I struggled with nested while loops but improved after re-watching the lecture.', depth: 5, confidenceLevel: ConfidenceLevel.MEDIUM },
-                    quizEvaluation: { score: 5, total: 5, feedback: 'Excellent.' }
+                    reflection: { text: 'I struggled with nested while loops but improved after re-watching the lecture.', depth: 5, confidenceLevel: ConfidenceLevel.MEDIUM }
                 },
                 {
                     date: '2025-09-13T10:00:00.000Z',
                     goal: { text: 'Read 20 pages of "The Great Gatsby".', completed: true },
-                    reflection: { text: 'I struggled with this chapter.', depth: 2, confidenceLevel: ConfidenceLevel.LOW },
-                    quizEvaluation: { score: 3, total: 5, feedback: 'Good effort.' }
+                    reflection: { text: 'I struggled with this chapter.', depth: 2, confidenceLevel: ConfidenceLevel.LOW }
                 },
                 {
                     date: '2025-09-12T10:00:00.000Z',
                     goal: { text: 'Outline the history essay on the Cold War.', completed: true },
-                    reflection: { text: 'Felt confident about the structure and key points.', depth: 5, confidenceLevel: ConfidenceLevel.HIGH },
-                    quizEvaluation: { score: 5, total: 5, feedback: 'Excellent work!' }
+                    reflection: { text: 'Felt confident about the structure and key points.', depth: 5, confidenceLevel: ConfidenceLevel.HIGH }
                 }
             ]
         },
@@ -83,8 +79,8 @@ const MOCK_DB: MockDB = {
             streak: 5,
             badges: [],
             entries: [
-                { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Practice calculus problems.', completed: true }, reflection: { text: 'Felt good about this.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH }, quizEvaluation: { score: 1, total: 5, feedback: 'Needs review.'} },
-                { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Study for the upcoming test.', completed: true }, reflection: { text: 'Covered all topics.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH }, quizEvaluation: { score: 2, total: 5, feedback: 'Needs review.'} },
+                { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Practice calculus problems.', completed: true }, reflection: { text: 'Felt good about this.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH } },
+                { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Study for the upcoming test.', completed: true }, reflection: { text: 'Covered all topics.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH } },
             ]
         }
     },
@@ -135,7 +131,7 @@ const checkAndAwardBadges = (student: StudentData): StudentData => {
 
     // Quiz Whiz
     const quizzes = student.entries.map(e => e.quizEvaluation).filter(Boolean);
-    if (quizzes.length > 2) {
+    if (quizzes.length > 0) {
         const avgScore = (quizzes.reduce((sum, q) => sum + (q!.score / q!.total), 0) / quizzes.length) * 100;
         if (avgScore >= 90 && !earnedBadges.has('quiz-whiz')) {
             earnedBadges.set('quiz-whiz', ALL_BADGES.find(b => b.id === 'quiz-whiz')!);

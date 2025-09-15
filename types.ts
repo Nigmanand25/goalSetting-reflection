@@ -42,12 +42,21 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correctAnswer: string;
+  explanation?: string;
+}
+
+export interface Quiz {
+  questions: QuizQuestion[];
+  title: string;
+  description: string;
 }
 
 export interface QuizEvaluation {
   score: number;
   total: number;
   feedback: string;
+  correctAnswers: number;
+  incorrectAnswers: number;
 }
 
 export interface DailyEntry {

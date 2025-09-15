@@ -69,7 +69,7 @@ const checkAndAwardBadges = (student: StudentData): StudentData => {
 
     // Quiz Whiz
     const quizzes = student.entries.map(e => e.quizEvaluation).filter(Boolean);
-    if (quizzes.length > 2) {
+    if (quizzes.length > 0) {
         const avgScore = (quizzes.reduce((sum, q) => sum + (q!.score / q!.total), 0) / quizzes.length) * 100;
         if (avgScore >= 90 && !earnedBadges.has('quiz-whiz')) {
             earnedBadges.set('quiz-whiz', ALL_BADGES.find(b => b.id === 'quiz-whiz')!);
@@ -483,8 +483,7 @@ export const initializeDefaultStudent = async (): Promise<void> => {
                 {
                     date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
                     goal: { text: 'Practice coding exercises', completed: true },
-                    reflection: { text: 'Good progress today with understanding loops', depth: 4, confidenceLevel: 'HIGH' as any },
-                    quizEvaluation: { score: 4, total: 5, feedback: 'Well done!' }
+                    reflection: { text: 'Good progress today with understanding loops', depth: 4, confidenceLevel: 'HIGH' as any }
                 }
             ];
             
