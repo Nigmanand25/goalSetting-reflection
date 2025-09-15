@@ -5,6 +5,7 @@ import EngagementChart from './EngagementChart';
 import AiSummary from './AiSummary';
 import { useApp } from '../../contexts/AppContext';
 import Card from '../shared/Card';
+import StudentDetailView from './StudentDetailView';
 
 const LoadingSkeleton: React.FC = () => (
     <div className="space-y-6 animate-pulse">
@@ -27,10 +28,15 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 const AdminDashboard: React.FC = () => {
-  const { adminData, loading, error } = useApp();
+  const { adminData, loading, error, selectedStudent, viewStudentDetails, clearStudentDetailsView } = useApp();
 
   if (loading) return <LoadingSkeleton />;
   if (error) return <Card><p className="text-center text-red-500">{error}</p></Card>;
+
+  if (selectedStudent) {
+    return <StudentDetailView student={selectedStudent} onBack={clearStudentDetailsView} />;
+  }
+  
   if (!adminData) return <Card><p className="text-center text-slate-500">No admin data available.</p></Card>;
 
   return (
@@ -49,7 +55,7 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Risk Alerts */}
         <div className="lg:col-span-1">
-          <RiskAlerts students={adminData.atRiskStudents} />
+          <RiskAlerts students={adminData.atRiskStudents} onSelectStudent={viewStudentDetails} />
         </div>
         
         {/* Engagement & Summary */}
