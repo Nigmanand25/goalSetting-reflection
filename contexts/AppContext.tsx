@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, QuizEvaluation, ConfidenceLevel, SMARTScore } from '../types';
 import { useAuth } from './AuthContext';
+import { updateUserProgress, initializeUserProgress } from '../utils/progressUtils';
 import * as firebaseService from '../services/firebaseServiceReal';
 
 // Helper function to clean undefined values from objects
@@ -79,11 +80,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!studentData || !user) return;
     
     try {
+      // Update user progress if SMART score is provided
+      let updatedProgress = studentData.progress;
+      if (smartScore) {
+        if (!updatedProgress) {
+          updatedProgress = initializeUserProgress();
+        }
+        updatedProgress = updateUserProgress(updatedProgress, smartScore);
+      }
+
       const newEntry: DailyEntry = {
         date: new Date().toISOString(),
         goal: { text: goalText, completed: false, smartScore },
       };
       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, newEntry);
+      
+      // Update progress in student data
+      if (updatedProgress) {
+        updatedStudentData.progress = updatedProgress;
+      }
+
       setStudentData(updatedStudentData);
     } catch (error) {
       console.error('Error adding goal:', error);

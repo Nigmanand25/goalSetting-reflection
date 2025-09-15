@@ -26,6 +26,15 @@ export interface Goal {
   completed: boolean;
 }
 
+export interface UserProgress {
+  currentSmartThreshold: number;  // Current minimum SMART score required
+  goalsAnalyzed: number;         // Total goals analyzed with AI
+  daysActive: number;            // Days since first goal
+  averageSmartScore: number;     // Running average of SMART scores
+  lastThresholdIncrease: string; // Date of last threshold increase
+  startDate: string;             // When user started using the system
+}
+
 export enum ConfidenceLevel {
   LOW = 'low',
   MEDIUM = 'medium',
@@ -80,6 +89,7 @@ export interface StudentData {
   streak: number;
   entries: DailyEntry[];
   badges: Badge[];
+  progress?: UserProgress;       // Add progress tracking
 }
 
 export interface AtRiskStudent {

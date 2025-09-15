@@ -1,4 +1,5 @@
 import { StudentData, AdminDashboardData, ConfidenceLevel, DailyEntry, Badge } from '../types';
+import { initializeUserProgress } from '../utils/progressUtils';
 
 // Master list of all available badges
 const ALL_BADGES: Badge[] = [
@@ -26,6 +27,7 @@ const MOCK_DB: MockDB = {
             consistencyScore: 95, // High enough for a badge
             streak: 12, // High enough for a badge
             badges: [], // Badges will be awarded dynamically
+            progress: initializeUserProgress(), // Initialize progress tracking
             entries: [
                 {
                     date: '2025-09-15T10:00:00.000Z',
@@ -55,6 +57,7 @@ const MOCK_DB: MockDB = {
             consistencyScore: 60,
             streak: 0,
             badges: [],
+            progress: initializeUserProgress(),
             entries: [
                 { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Review lecture notes.', completed: false } },
                 { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Start the new assignment.', completed: false } },
@@ -67,6 +70,7 @@ const MOCK_DB: MockDB = {
             consistencyScore: 75,
             streak: 2,
             badges: [],
+            progress: initializeUserProgress(),
             entries: [
                 { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Finish coding project.', completed: true }, reflection: { text: 'It was hard.', depth: 1, confidenceLevel: ConfidenceLevel.LOW } },
                 { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Debug the main function.', completed: true }, reflection: { text: 'Got it done.', depth: 2, confidenceLevel: ConfidenceLevel.MEDIUM } },
@@ -78,6 +82,7 @@ const MOCK_DB: MockDB = {
             consistencyScore: 88,
             streak: 5,
             badges: [],
+            progress: initializeUserProgress(),
             entries: [
                 { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Practice calculus problems.', completed: true }, reflection: { text: 'Felt good about this.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH } },
                 { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Study for the upcoming test.', completed: true }, reflection: { text: 'Covered all topics.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH } },
