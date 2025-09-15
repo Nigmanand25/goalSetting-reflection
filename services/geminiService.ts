@@ -1,12 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SMARTScore, QuizQuestion, AdminDashboardData } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 // Function to get SMART score analysis from Gemini API
 export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, feedback: string}> => {
-  if (!process.env.API_KEY) {
-      console.warn("API_KEY is not set. Using mock data for getSmartScore.");
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for getSmartScore.");
       await new Promise(resolve => setTimeout(resolve, 500));
       return { 
           score: { specific: 4, measurable: 3, achievable: 5, realistic: 4, timeBound: 2 },
@@ -49,8 +49,8 @@ export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, f
 
 // Function to generate a quiz question from Gemini API
 export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion> => {
-    if (!process.env.API_KEY) {
-        console.warn("API_KEY is not set. Using mock data for generateQuizQuestion.");
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for generateQuizQuestion.");
         await new Promise(resolve => setTimeout(resolve, 800));
         return {
             question: `What is the primary purpose of a 'for' loop in Python? (Mock Response)`,
@@ -90,8 +90,8 @@ export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion>
 
 // Function to generate a weekly summary from Gemini API
 export const generateWeeklySummary = async (adminData: AdminDashboardData): Promise<string> => {
-    if (!process.env.API_KEY) {
-        console.warn("API_KEY is not set. Using mock data for generateWeeklySummary.");
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for generateWeeklySummary.");
         await new Promise(resolve => setTimeout(resolve, 1200));
         return "Overall engagement remains strong this week with a 92% goal completion rate. A slight dip in reflection depth was noted on Wednesday. Students like Chloe Davis are showing signs of struggle. Recommend a targeted check-in. (Mock Response)";
     }
