@@ -64,8 +64,8 @@ const StudentDashboard: React.FC = () => {
     return 'done'; // All tasks for the day are complete
   }, [todaysEntry]);
 
-  const handleGoalSet = async (goalText: string) => {
-    await addGoal(goalText);
+  const handleGoalSet = async (goalText: string, smartScore?: import('../../types').SMARTScore) => {
+    await addGoal(goalText, smartScore);
   };
 
   const handleReflectionSubmit = async (reflectionText: string, depth: number, confidence: ConfidenceLevel) => {

@@ -1,28 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import Card from '../shared/Card';
+import SmartScoreDisplay from '../shared/SmartScoreDisplay';
 import { getSmartScore } from '../../services/geminiService';
 import { SMARTScore } from '../../types';
 
 interface GoalSetterProps {
-  onGoalSet: (goal: string) => Promise<void>;
+  onGoalSet: (goal: string, smartScore?: SMARTScore) => Promise<void>;
 }
-
-const SmartScoreDisplay: React.FC<{ score: SMARTScore }> = ({ score }) => {
-    const scoreItems = Object.entries(score).map(([key, value]) => ({
-        name: key.charAt(0).toUpperCase() + key.slice(1),
-        value: value
-    }));
-    return (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center mt-4">
-            {scoreItems.map(item => (
-                <div key={item.name} className="bg-slate-100 dark:bg-slate-700 p-2 rounded-lg">
-                    <div className="text-sm font-medium text-slate-500 dark:text-slate-400">{item.name}</div>
-                    <div className="text-lg font-bold text-indigo-500">{item.value}/5</div>
-                </div>
-            ))}
-        </div>
-    );
-};
 
 const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
   const [goal, setGoal] = useState('');
@@ -49,7 +33,7 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
     if (!goal.trim()) return;
     setIsSettingGoal(true);
     try {
-        await onGoalSet(goal);
+        await onGoalSet(goal, analysis?.score);
     } catch (error) {
         console.error("Failed to set goal", error);
         // Optionally show an error to the user
@@ -85,7 +69,9 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
         <div className="mt-4 p-4 bg-indigo-50 dark:bg-slate-700 rounded-lg">
             <p className="text-sm text-indigo-800 dark:text-indigo-200 font-medium">✨ AI Feedback</p>
             <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">{analysis.feedback}</p>
-            <SmartScoreDisplay score={analysis.score} />
+            <div className="mt-3">
+              <SmartScoreDisplay score={analysis.score} size="medium" showAverage={true} />
+            </div>
         </div>
       )}
 

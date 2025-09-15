@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import { DailyEntry, ConfidenceLevel } from '../../types';
+import { DailyEntry, ConfidenceLevel, SMARTScore } from '../../types';
 import Card from '../shared/Card';
+import SmartScoreDisplay from '../shared/SmartScoreDisplay';
 
 interface StatsOverviewProps {
   entries: DailyEntry[];
@@ -26,6 +27,30 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ entries, className = '' }
           return sum;
         }, 0) / quizDays * 100
       : 0;
+
+    // SMART Score Analytics
+    const smartScoreEntries = entries.filter(e => e.goal?.smartScore);
+    const avgSmartScore = smartScoreEntries.length > 0
+      ? smartScoreEntries.reduce((acc, e) => {
+          const score = e.goal!.smartScore!;
+          return {
+            specific: acc.specific + score.specific,
+            measurable: acc.measurable + score.measurable,
+            achievable: acc.achievable + score.achievable,
+            realistic: acc.realistic + score.realistic,
+            timeBound: acc.timeBound + score.timeBound,
+          };
+        }, { specific: 0, measurable: 0, achievable: 0, realistic: 0, timeBound: 0 })
+      : null;
+
+    if (avgSmartScore) {
+      const count = smartScoreEntries.length;
+      avgSmartScore.specific /= count;
+      avgSmartScore.measurable /= count;
+      avgSmartScore.achievable /= count;
+      avgSmartScore.realistic /= count;
+      avgSmartScore.timeBound /= count;
+    }
 
     const confidenceLevels = entries.reduce((acc, e) => {
       if (e.reflection?.confidenceLevel) {
@@ -57,7 +82,9 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ entries, className = '' }
       avgReflectionDepth,
       avgQuizScore,
       confidenceLevels,
-      currentStreak
+      currentStreak,
+      avgSmartScore: avgSmartScore as SMARTScore | null,
+      smartScoreCount: smartScoreEntries.length
     };
   }, [entries]);
 
@@ -139,6 +166,20 @@ const StatsOverview: React.FC<StatsOverviewProps> = ({ entries, className = '' }
           <div className="text-xs text-slate-500 mt-1">completion rate</div>
         </div>
       </div>
+
+      {/* SMART Score Analytics */}
+      {stats.avgSmartScore && (
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mb-4">
+          <h4 className="font-medium text-slate-800 dark:text-slate-100 mb-3">
+            🎯 Average SMART Score ({stats.smartScoreCount} goals analyzed)
+          </h4>
+          <SmartScoreDisplay 
+            score={stats.avgSmartScore} 
+            size="medium" 
+            showAverage={true}
+          />
+        </div>
+      )}
 
       {/* Confidence Distribution */}
       {stats.reflectionDays > 0 && (

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Card from '../shared/Card';
 import MiniCalendar from './MiniCalendar';
+import SmartScoreDisplay from '../shared/SmartScoreDisplay';
 import { DailyEntry } from '../../types';
 
 interface TimelineProps {
@@ -27,12 +28,41 @@ const TimelineEntry: React.FC<{ entry: DailyEntry, isLast: boolean }> = ({ entry
                         )}
                     </span>
                 </div>
-                <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                    <div>
+                <div className="min-w-0 flex-1 pt-1.5">
+                    <div className="space-y-2">
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                            {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </p>
                         <p className="font-medium text-slate-900 dark:text-slate-100">{entry.goal.text}</p>
+                        
+                        {entry.goal.smartScore && (
+                            <div className="mt-2">
+                                <SmartScoreDisplay 
+                                    score={entry.goal.smartScore} 
+                                    size="small" 
+                                    showAverage={true}
+                                />
+                            </div>
+                        )}
+                        
+                        {entry.reflection && (
+                            <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-sm">
+                                <p className="text-purple-800 dark:text-purple-200">{entry.reflection.text}</p>
+                                <div className="flex items-center justify-between mt-1 text-xs text-purple-600 dark:text-purple-400">
+                                    <span>Depth: {entry.reflection.depth}/5</span>
+                                    <span>Confidence: {entry.reflection.confidenceLevel}</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {entry.quizEvaluation && (
+                            <div className="mt-2 p-2 bg-teal-50 dark:bg-teal-900/20 rounded text-sm">
+                                <p className="text-teal-800 dark:text-teal-200">
+                                    Quiz Score: {entry.quizEvaluation.correctAnswers}/{entry.quizEvaluation.total} 
+                                    ({Math.round((entry.quizEvaluation.correctAnswers / entry.quizEvaluation.total) * 100)}%)
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

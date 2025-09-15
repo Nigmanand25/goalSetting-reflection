@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
-import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, QuizEvaluation, ConfidenceLevel } from '../types';
+import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, QuizEvaluation, ConfidenceLevel, SMARTScore } from '../types';
 import { useAuth } from './AuthContext';
 import * as firebaseService from '../services/firebaseServiceReal';
 
@@ -16,7 +16,7 @@ interface AppContextType {
   adminData: AdminDashboardData | null;
   loading: boolean;
   error: string | null;
-  addGoal: (goalText: string) => Promise<void>;
+  addGoal: (goalText: string, smartScore?: SMARTScore) => Promise<void>;
   addReflection: (reflection: { text: string; depth: number; confidenceLevel: ConfidenceLevel }) => Promise<void>;
   addQuizResult: (evaluation: QuizEvaluation) => Promise<void>;
   selectedStudent: StudentData | null;
@@ -75,13 +75,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [userRole, user, fetchData]);
 
-  const addGoal = async (goalText: string) => {
+  const addGoal = async (goalText: string, smartScore?: SMARTScore) => {
     if (!studentData || !user) return;
     
     try {
       const newEntry: DailyEntry = {
         date: new Date().toISOString(),
-        goal: { text: goalText, completed: false },
+        goal: { text: goalText, completed: false, smartScore },
       };
       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, newEntry);
       setStudentData(updatedStudentData);
