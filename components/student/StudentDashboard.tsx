@@ -41,9 +41,26 @@ const StudentDashboard: React.FC = () => {
   }, [studentData]);
 
   const view = useMemo(() => {
-    if (!todaysEntry || !todaysEntry.goal) return 'goal';
-    if (!todaysEntry.reflection) return 'reflect';
-    if (!todaysEntry.quizEvaluation) return 'quiz';
+    console.log('=== DEBUGGING STUDENT FLOW ===');
+    console.log('todaysEntry:', todaysEntry);
+    console.log('hasGoal:', todaysEntry?.goal);
+    console.log('hasReflection:', todaysEntry?.reflection);
+    console.log('hasQuiz:', todaysEntry?.quizEvaluation);
+    
+    if (!todaysEntry || !todaysEntry.goal) {
+      console.log('View: goal (no entry or no goal)');
+      return 'goal';
+    }
+    if (!todaysEntry.reflection) {
+      console.log('View: reflect (goal exists, no reflection)');
+      return 'reflect';
+    }
+    if (!todaysEntry.quizEvaluation) {
+      console.log('View: quiz (goal and reflection exist, no quiz)');
+      return 'quiz';
+    }
+    console.log('View: done (all tasks complete)');
+    console.log('===============================');
     return 'done'; // All tasks for the day are complete
   }, [todaysEntry]);
 
@@ -63,7 +80,7 @@ const StudentDashboard: React.FC = () => {
           case 'goal':
               return <GoalSetter onGoalSet={handleGoalSet} />;
           case 'reflect':
-              return <Reflector onReflectionSubmit={handleReflectionSubmit} />;
+              return <Reflector onReflectionSubmit={handleReflectionSubmit} todaysGoal={todaysEntry?.goal?.text} />;
           case 'quiz':
               return <QuizCard />;
           case 'done':

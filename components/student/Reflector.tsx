@@ -4,9 +4,10 @@ import { ConfidenceLevel } from '../../types';
 
 interface ReflectorProps {
   onReflectionSubmit: (text: string, depth: number, confidence: ConfidenceLevel) => Promise<void>;
+  todaysGoal?: string;
 }
 
-const Reflector: React.FC<ReflectorProps> = ({ onReflectionSubmit }) => {
+const Reflector: React.FC<ReflectorProps> = ({ onReflectionSubmit, todaysGoal }) => {
   const [text, setText] = useState('');
   const [depth, setDepth] = useState(3);
   const [confidence, setConfidence] = useState<ConfidenceLevel>(ConfidenceLevel.MEDIUM);
@@ -43,6 +44,13 @@ const Reflector: React.FC<ReflectorProps> = ({ onReflectionSubmit }) => {
         <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">How did it go today?</h3>
       </div>
       <p className="text-slate-500 dark:text-slate-400 mt-2">Reflect on your progress, challenges, and learnings.</p>
+      
+      {todaysGoal && (
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Today's Goal:</p>
+          <p className="text-blue-600 dark:text-blue-300 mt-1">{todaysGoal}</p>
+        </div>
+      )}
 
       <div className="mt-4">
         <textarea
