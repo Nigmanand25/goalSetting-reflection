@@ -3,6 +3,7 @@ import KpiCard from './KpiCard';
 import RiskAlerts from './RiskAlerts';
 import EngagementChart from './EngagementChart';
 import AiSummary from './AiSummary';
+import AdminConsole from '../AdminConsole';
 import { useApp } from '../../contexts/AppContext';
 import Card from '../shared/Card';
 
@@ -58,6 +59,9 @@ const AdminDashboard: React.FC = () => {
           <AiSummary adminData={adminData} />
         </div>
       </div>
+
+      {/* Development Admin Console */}
+      {process.env.NODE_ENV === 'development' && <AdminConsole />}
     </div>
   );
 };

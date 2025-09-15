@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, QuizEvaluation, ConfidenceLevel } from '../types';
-import * as firebaseService from '../services/firebaseService';
+import { useAuth } from './AuthContext';
+import * as firebaseService from '../services/firebaseServiceReal';
 
 interface AppContextType {
   userRole: UserRole;
@@ -17,18 +18,20 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [userRole, setUserRole] = useState<UserRole>(UserRole.STUDENT);
+  const { user, userRole } = useAuth();
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [adminData, setAdminData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (role: UserRole) => {
+  const fetchData = useCallback(async (role: UserRole, userId?: string, displayName?: string) => {
     setLoading(true);
     setError(null);
     try {
       if (role === UserRole.STUDENT) {
-        const data = await firebaseService.getStudentData('S123'); // Hardcoded student ID for demo
+        // Use authenticated user ID or fallback to demo ID
+        const studentId = userId || 'S123';
+        const data = await firebaseService.getStudentData(studentId, displayName);
         setStudentData(data);
         setAdminData(null);
       } else {
@@ -45,43 +48,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   useEffect(() => {
-    fetchData(userRole);
-  }, [userRole, fetchData]);
+    if (user) {
+      fetchData(userRole, user.uid, user.displayName || undefined);
+    }
+  }, [userRole, user, fetchData]);
   
   const switchRole = (role: UserRole) => {
-      setUserRole(role);
+      // Role switching is now handled by AuthContext
+      console.log('Role switching to:', role);
   };
 
   const addGoal = async (goalText: string) => {
-      if (!studentData) return;
+      if (!studentData || !user) return;
       const newEntry: DailyEntry = {
         date: new Date().toISOString(),
         goal: { text: goalText, completed: false },
       };
-      const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(studentData.studentId, newEntry);
+      const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, newEntry);
       setStudentData(updatedStudentData);
   };
 
   const addReflection = async (reflection: Reflection) => {
-    if (!studentData) return;
+    if (!studentData || !user) return;
     const todayStr = new Date().toISOString().split('T')[0];
     const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
     
     if (todaysEntry) {
        const updatedEntry = { ...todaysEntry, reflection };
-       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(studentData.studentId, updatedEntry);
+       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
        setStudentData(updatedStudentData);
     }
   };
 
   const addQuizResult = async (evaluation: QuizEvaluation) => {
-    if (!studentData) return;
+    if (!studentData || !user) return;
     const todayStr = new Date().toISOString().split('T')[0];
     const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
 
     if (todaysEntry) {
       const updatedEntry = { ...todaysEntry, quizEvaluation: evaluation };
-      const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(studentData.studentId, updatedEntry);
+      const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
       setStudentData(updatedStudentData);
     }
   };

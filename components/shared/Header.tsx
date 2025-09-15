@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { UserRole } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -8,6 +9,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ currentRole, onRoleChange }) => {
+  const { user, signOut } = useAuth();
+
   return (
     <header className="bg-white dark:bg-slate-800 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -20,23 +23,51 @@ const Header: React.FC<HeaderProps> = ({ currentRole, onRoleChange }) => {
           </h1>
         </div>
         
-        <div className="flex items-center space-x-2 bg-slate-200 dark:bg-slate-700 p-1 rounded-full">
-          <button
-            onClick={() => onRoleChange(UserRole.STUDENT)}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
-              currentRole === UserRole.STUDENT ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            Student
-          </button>
-          <button
-            onClick={() => onRoleChange(UserRole.ADMIN)}
-            className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
-              currentRole === UserRole.ADMIN ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
-            }`}
-          >
-            Admin
-          </button>
+        <div className="flex items-center space-x-4">
+          {/* Role Switcher */}
+          <div className="flex items-center space-x-2 bg-slate-200 dark:bg-slate-700 p-1 rounded-full">
+            <button
+              onClick={() => onRoleChange(UserRole.STUDENT)}
+              className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
+                currentRole === UserRole.STUDENT ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              Student
+            </button>
+            <button
+              onClick={() => onRoleChange(UserRole.ADMIN)}
+              className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
+                currentRole === UserRole.ADMIN ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              Admin
+            </button>
+          </div>
+
+          {/* User Info & Sign Out */}
+          {user && (
+            <div className="flex items-center space-x-3">
+              {user.photoURL && (
+                <img 
+                  src={user.photoURL} 
+                  alt={user.displayName || 'User'} 
+                  className="h-8 w-8 rounded-full"
+                />
+              )}
+              <span className="text-sm text-slate-700 dark:text-slate-300 hidden sm:block">
+                {user.displayName}
+              </span>
+              <button
+                onClick={signOut}
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                title="Sign Out"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
