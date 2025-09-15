@@ -5,10 +5,9 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   currentRole: UserRole;
-  onRoleChange: (role: UserRole) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentRole, onRoleChange }) => {
+const Header: React.FC<HeaderProps> = ({ currentRole }) => {
   const { user, signOut } = useAuth();
 
   return (
@@ -24,26 +23,6 @@ const Header: React.FC<HeaderProps> = ({ currentRole, onRoleChange }) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Role Switcher */}
-          <div className="flex items-center space-x-2 bg-slate-200 dark:bg-slate-700 p-1 rounded-full">
-            <button
-              onClick={() => onRoleChange(UserRole.STUDENT)}
-              className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
-                currentRole === UserRole.STUDENT ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
-              }`}
-            >
-              Student
-            </button>
-            <button
-              onClick={() => onRoleChange(UserRole.ADMIN)}
-              className={`px-3 py-1 text-sm font-medium rounded-full transition-colors duration-200 ${
-                currentRole === UserRole.ADMIN ? 'bg-white dark:bg-slate-900 text-indigo-500 shadow' : 'text-slate-600 dark:text-slate-300'
-              }`}
-            >
-              Admin
-            </button>
-          </div>
-
           {/* User Info & Sign Out */}
           {user && (
             <div className="flex items-center space-x-3">

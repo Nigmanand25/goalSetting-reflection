@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Card from '../shared/Card';
+import MiniCalendar from './MiniCalendar';
 import { DailyEntry } from '../../types';
 
 interface TimelineProps {
@@ -41,15 +42,48 @@ const TimelineEntry: React.FC<{ entry: DailyEntry, isLast: boolean }> = ({ entry
 
 
 const Timeline: React.FC<TimelineProps> = ({ entries }) => {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  
+  // Filter entries based on selected date or show recent entries
+  const filteredEntries = selectedDate 
+    ? entries.filter(e => e.date.startsWith(selectedDate))
+    : entries.slice(-5); // Show last 5 entries by default
+
   return (
-    <Card>
-      <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">Your Journey</h3>
-      <ul className="-mb-8">
-        {entries.map((entry, index) => (
-          <TimelineEntry key={entry.date} entry={entry} isLast={index === entries.length - 1} />
-        ))}
-      </ul>
-    </Card>
+    <div className="space-y-4">
+      <MiniCalendar 
+        entries={entries} 
+        onDateSelect={(date) => setSelectedDate(date === selectedDate ? null : date)}
+      />
+      
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
+            {selectedDate ? 'Selected Day' : 'Recent Activity'}
+          </h3>
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
+            >
+              Show All
+            </button>
+          )}
+        </div>
+        
+        {filteredEntries.length > 0 ? (
+          <ul className="-mb-8">
+            {filteredEntries.map((entry, index) => (
+              <TimelineEntry key={entry.date} entry={entry} isLast={index === filteredEntries.length - 1} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-center text-slate-500 dark:text-slate-400 py-8">
+            {selectedDate ? 'No activity on this date' : 'No recent activity'}
+          </p>
+        )}
+      </Card>
+    </div>
   );
 };
 

@@ -162,8 +162,13 @@ export const addOrUpdateDailyEntry = async (studentId: string, entry: DailyEntry
         
         const existingEntrySnapshot = await getDocs(existingEntryQuery);
         
+        // Filter out undefined values to avoid Firebase errors
+        const cleanEntry = Object.fromEntries(
+            Object.entries(entry).filter(([_, value]) => value !== undefined)
+        );
+
         const entryData = {
-            ...entry,
+            ...cleanEntry,
             studentId,
             dateString: entryDate,
             timestamp: Timestamp.fromDate(new Date(entry.date))

@@ -3,13 +3,19 @@ import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, Quiz
 import { useAuth } from './AuthContext';
 import * as firebaseService from '../services/firebaseServiceReal';
 
+// Helper function to clean undefined values from objects
+const cleanObject = <T extends Record<string, any>>(obj: T): Partial<T> => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined)
+  ) as Partial<T>;
+};
+
 interface AppContextType {
   userRole: UserRole;
   studentData: StudentData | null;
   adminData: AdminDashboardData | null;
   loading: boolean;
   error: string | null;
-  switchRole: (role: UserRole) => void;
   addGoal: (goalText: string) => Promise<void>;
   addReflection: (reflection: { text: string; depth: number; confidenceLevel: ConfidenceLevel }) => Promise<void>;
   addQuizResult: (evaluation: QuizEvaluation) => Promise<void>;
@@ -27,6 +33,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-clear errors after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const fetchData = useCallback(async (role: UserRole, userId?: string, displayName?: string) => {
     setLoading(true);
@@ -58,43 +74,78 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       fetchData(userRole, user.uid, user.displayName || undefined);
     }
   }, [userRole, user, fetchData]);
-  
-  const switchRole = (role: UserRole) => {
-      // Role switching is now handled by AuthContext
-      console.log('Role switching to:', role);
-  };
 
   const addGoal = async (goalText: string) => {
-      if (!studentData || !user) return;
+    if (!studentData || !user) return;
+    
+    try {
       const newEntry: DailyEntry = {
         date: new Date().toISOString(),
         goal: { text: goalText, completed: false },
       };
       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, newEntry);
       setStudentData(updatedStudentData);
+    } catch (error) {
+      console.error('Error adding goal:', error);
+      setError('Failed to save goal. Please try again.');
+    }
   };
 
   const addReflection = async (reflection: Reflection) => {
     if (!studentData || !user) return;
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
     
-    if (todaysEntry) {
-       const updatedEntry = { ...todaysEntry, reflection };
-       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
-       setStudentData(updatedStudentData);
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
+      
+      if (todaysEntry) {
+        // Create clean entry without undefined values
+        const updatedEntry: DailyEntry = {
+          date: todaysEntry.date,
+          goal: todaysEntry.goal,
+          reflection
+        };
+        
+        // Only add quizEvaluation if it exists
+        if (todaysEntry.quizEvaluation) {
+          updatedEntry.quizEvaluation = todaysEntry.quizEvaluation;
+        }
+        
+        const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
+        setStudentData(updatedStudentData);
+      }
+    } catch (error) {
+      console.error('Error adding reflection:', error);
+      setError('Failed to save reflection. Please try again.');
     }
   };
 
   const addQuizResult = async (evaluation: QuizEvaluation) => {
     if (!studentData || !user) return;
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
+    
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
 
-    if (todaysEntry) {
-      const updatedEntry = { ...todaysEntry, quizEvaluation: evaluation };
-      const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
-      setStudentData(updatedStudentData);
+      if (todaysEntry) {
+        // Create clean entry without undefined values
+        const updatedEntry: DailyEntry = {
+          date: todaysEntry.date,
+          goal: todaysEntry.goal,
+          quizEvaluation: evaluation
+        };
+        
+        // Only add reflection if it exists
+        if (todaysEntry.reflection) {
+          updatedEntry.reflection = todaysEntry.reflection;
+        }
+        
+        const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
+        setStudentData(updatedStudentData);
+      }
+    } catch (error) {
+      console.error('Error adding quiz result:', error);
+      setError('Failed to save quiz result. Please try again.');
     }
   };
 
@@ -118,7 +169,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   return (
-    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, switchRole, addGoal, addReflection, addQuizResult, selectedStudent, viewStudentDetails, clearStudentDetailsView }}>
+    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, addGoal, addReflection, addQuizResult, selectedStudent, viewStudentDetails, clearStudentDetailsView }}>
       {children}
     </AppContext.Provider>
   );

@@ -8,7 +8,7 @@ import { useApp } from './contexts/AppContext';
 import { useAuth } from './contexts/AuthContext';
 
 const App: React.FC = () => {
-  const { userRole, switchRole } = useApp();
+  const { userRole } = useApp();
   const { user, loading } = useAuth();
 
   // Show loading spinner while checking auth
@@ -28,7 +28,7 @@ const App: React.FC = () => {
   // Show main app if user is authenticated
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans">
-      <Header currentRole={userRole} onRoleChange={switchRole} />
+      <Header currentRole={userRole} />
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {userRole === UserRole.STUDENT ? <StudentDashboard /> : <AdminDashboard />}
       </main>
