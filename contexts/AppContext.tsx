@@ -13,6 +13,9 @@ interface AppContextType {
   addGoal: (goalText: string) => Promise<void>;
   addReflection: (reflection: { text: string; depth: number; confidenceLevel: ConfidenceLevel }) => Promise<void>;
   addQuizResult: (evaluation: QuizEvaluation) => Promise<void>;
+  selectedStudent: StudentData | null;
+  viewStudentDetails: (studentId: string) => Promise<void>;
+  clearStudentDetailsView: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -21,6 +24,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const { user, userRole } = useAuth();
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [adminData, setAdminData] = useState<AdminDashboardData | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +53,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     if (user) {
+      // Clear selected student when switching roles
+      setSelectedStudent(null);
       fetchData(userRole, user.uid, user.displayName || undefined);
     }
   }, [userRole, user, fetchData]);
@@ -92,9 +98,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const viewStudentDetails = async (studentId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+        const data = await firebaseService.getStudentData(studentId);
+        setSelectedStudent(data);
+    } catch (err) {
+        setError('Failed to fetch student details.');
+        console.error(err);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const clearStudentDetailsView = () => {
+    setSelectedStudent(null);
+  };
+
 
   return (
-    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, switchRole, addGoal, addReflection, addQuizResult }}>
+    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, switchRole, addGoal, addReflection, addQuizResult, selectedStudent, viewStudentDetails, clearStudentDetailsView }}>
       {children}
     </AppContext.Provider>
   );

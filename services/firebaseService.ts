@@ -52,6 +52,40 @@ const MOCK_DB: MockDB = {
                     quizEvaluation: { score: 5, total: 5, feedback: 'Excellent work!' }
                 }
             ]
+        },
+        'S101': {
+            studentId: 'S101',
+            name: 'Ben Carter',
+            consistencyScore: 60,
+            streak: 0,
+            badges: [],
+            entries: [
+                { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Review lecture notes.', completed: false } },
+                { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Start the new assignment.', completed: false } },
+                { date: '2025-09-13T10:00:00.000Z', goal: { text: 'Read Chapter 3.', completed: false } },
+            ]
+        },
+        'S240': {
+            studentId: 'S240',
+            name: 'Chloe Davis',
+            consistencyScore: 75,
+            streak: 2,
+            badges: [],
+            entries: [
+                { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Finish coding project.', completed: true }, reflection: { text: 'It was hard.', depth: 1, confidenceLevel: ConfidenceLevel.LOW } },
+                { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Debug the main function.', completed: true }, reflection: { text: 'Got it done.', depth: 2, confidenceLevel: ConfidenceLevel.MEDIUM } },
+            ]
+        },
+        'S315': {
+            studentId: 'S315',
+            name: 'David Evans',
+            consistencyScore: 88,
+            streak: 5,
+            badges: [],
+            entries: [
+                { date: '2025-09-15T10:00:00.000Z', goal: { text: 'Practice calculus problems.', completed: true }, reflection: { text: 'Felt good about this.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH }, quizEvaluation: { score: 1, total: 5, feedback: 'Needs review.'} },
+                { date: '2025-09-14T10:00:00.000Z', goal: { text: 'Study for the upcoming test.', completed: true }, reflection: { text: 'Covered all topics.', depth: 4, confidenceLevel: ConfidenceLevel.HIGH }, quizEvaluation: { score: 2, total: 5, feedback: 'Needs review.'} },
+            ]
         }
     },
     admin: {

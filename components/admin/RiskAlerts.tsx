@@ -1,13 +1,13 @@
-
 import React from 'react';
 import Card from '../shared/Card';
 import { AtRiskStudent } from '../../types';
 
 interface RiskAlertsProps {
   students: AtRiskStudent[];
+  onSelectStudent: (studentId: string) => void;
 }
 
-const RiskAlerts: React.FC<RiskAlertsProps> = ({ students }) => {
+const RiskAlerts: React.FC<RiskAlertsProps> = ({ students, onSelectStudent }) => {
   return (
     <Card>
       <div className="flex items-center space-x-3">
@@ -21,14 +21,20 @@ const RiskAlerts: React.FC<RiskAlertsProps> = ({ students }) => {
       
       <ul className="mt-4 divide-y divide-slate-200 dark:divide-slate-700">
         {students.map(student => (
-          <li key={student.id} className="py-3">
-            <div className="flex justify-between items-center">
-                <p className="font-medium text-slate-800 dark:text-slate-100">{student.name}</p>
-                <span className="text-xs font-semibold text-red-800 bg-red-100 dark:text-red-200 dark:bg-red-900 px-2 py-1 rounded-full">
-                    Alert
-                </span>
-            </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{student.reason}</p>
+          <li key={student.id}>
+            <button 
+              onClick={() => onSelectStudent(student.id)}
+              className="w-full text-left py-3 px-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors duration-200"
+              aria-label={`View details for ${student.name}`}
+            >
+                <div className="flex justify-between items-center">
+                    <p className="font-medium text-slate-800 dark:text-slate-100">{student.name}</p>
+                    <span className="text-xs font-semibold text-red-800 bg-red-100 dark:text-red-200 dark:bg-red-900 px-2 py-1 rounded-full">
+                        Alert
+                    </span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{student.reason}</p>
+            </button>
           </li>
         ))}
       </ul>
