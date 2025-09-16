@@ -26,6 +26,7 @@ const QuizCard: React.FC = () => {
         const goalText = todaysEntry?.goal.text || "personal development and goal achievement";
         const reflectionText = todaysEntry?.reflection?.text;
 
+        console.log("Generating personalized quiz for:", { goalText, hasReflection: !!reflectionText });
         const generatedQuiz = await generatePersonalizedQuiz(goalText, reflectionText);
         setQuiz(generatedQuiz);
         setUserAnswers(new Array(generatedQuiz.questions.length).fill(''));
@@ -198,6 +199,14 @@ const QuizCard: React.FC = () => {
           <div>
             <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">{quiz.title}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">{quiz.description}</p>
+            <div className="flex items-center mt-1 space-x-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                🤖 AI-Personalized
+              </span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                📝 Based on your goal & reflection
+              </span>
+            </div>
           </div>
         </div>
         <div className="text-sm text-slate-500 dark:text-slate-400">

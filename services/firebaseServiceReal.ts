@@ -14,6 +14,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { StudentData, AdminDashboardData, DailyEntry, Badge, AtRiskStudent, UserRole } from '../types';
+import { TestDataGenerator } from '../scripts/generateTestData';
+
 
 // User profile interface for Firebase
 interface UserProfile {
@@ -43,6 +45,55 @@ const ALL_BADGES: Badge[] = [
     { id: 'quiz-whiz', name: 'Quiz Whiz', description: 'Mastered the daily quizzes with an average score of 90% or higher.', icon: '🎯' },
     { id: 'perfect-week', name: 'Perfect Week', description: 'Completed every goal for a full 7 days.', icon: '⭐' },
 ];
+
+// Initialize test data for test@gmail.com
+const initializeTestDataInFirebase = async (): Promise<void> => {
+    try {
+        // Check if test student already exists
+        const testStudentRef = doc(db, COLLECTIONS.STUDENTS, 'TEST_STUDENT_001');
+        const testStudentDoc = await getDoc(testStudentRef);
+        
+        if (!testStudentDoc.exists()) {
+            console.log('🚀 Initializing test data for test@gmail.com...');
+            
+            const generator = new TestDataGenerator();
+            const testData = generator.generate15DaysData();
+            
+            // Add test student data to Firestore
+            await setDoc(testStudentRef, testData);
+            
+            // Add each daily entry to the dailyEntries collection
+            for (const entry of testData.entries) {
+                const entryRef = doc(collection(db, COLLECTIONS.DAILY_ENTRIES));
+                await setDoc(entryRef, {
+                    ...entry,
+                    studentId: testData.studentId,
+                    createdAt: new Date(entry.date),
+                    updatedAt: new Date()
+                });
+            }
+            
+            console.log('✅ Test data successfully added to Firebase:', {
+                studentId: testData.studentId,
+                name: testData.name,
+                totalEntries: testData.entries.length,
+                completedGoals: testData.entries.filter(e => e.goal.completed).length,
+                reflections: testData.entries.filter(e => e.reflection).length,
+                quizzes: testData.entries.filter(e => e.quizEvaluation).length,
+                consistencyScore: testData.consistencyScore,
+                streak: testData.streak,
+                badges: testData.badges.length
+            });
+        } else {
+            console.log('ℹ️ Test data already exists in Firebase');
+        }
+    } catch (error) {
+        console.error('❌ Error initializing test data:', error);
+    }
+};
+
+// Call initialization on module load
+initializeTestDataInFirebase();
 
 // Helper function to check and award badges
 const checkAndAwardBadges = (student: StudentData): StudentData => {
@@ -103,11 +154,11 @@ export const getStudentData = async (studentId: string, displayName?: string): P
 
         let studentData = studentDoc.data() as StudentData;
 
-        // Get daily entries for this student (simplified query)
+        // Get ALL daily entries for this student for comprehensive analytics
         const entriesQuery = query(
             collection(db, COLLECTIONS.DAILY_ENTRIES),
-            where('studentId', '==', studentId),
-            limit(30) // Last 30 days
+            where('studentId', '==', studentId)
+            // Remove limit for full data analytics
         );
         
         const entriesSnapshot = await getDocs(entriesQuery);
@@ -145,6 +196,51 @@ export const getStudentData = async (studentId: string, displayName?: string): P
             console.error('Firestore Index Required. Please create the index as suggested in the error message.');
         }
         throw new Error('Failed to fetch student data');
+    }
+};
+
+// Get comprehensive student analytics data for admin dashboard
+export const getStudentAnalytics = async (studentId: string): Promise<StudentData> => {
+    try {
+        // Get the full student data with all entries (no limit)
+        const studentData = await getStudentData(studentId);
+        
+        // Enhance with additional analytics data if needed
+        // This function fetches ALL entries for comprehensive analytics
+        return studentData;
+        
+    } catch (error) {
+        console.error('Error getting student analytics:', error);
+        throw new Error('Failed to fetch student analytics');
+    }
+};
+
+// Get student data by email (for test@gmail.com)
+export const getStudentDataByEmail = async (email: string): Promise<StudentData> => {
+    try {
+        // For test@gmail.com, return the test student data
+        if (email === 'test@gmail.com') {
+            return getStudentData('TEST_STUDENT_001', 'Test Student');
+        }
+        
+        // For other emails, try to find student by email in user profiles
+        const usersQuery = query(
+            collection(db, COLLECTIONS.USERS),
+            where('email', '==', email),
+            limit(1)
+        );
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        if (!usersSnapshot.empty) {
+            const userDoc = usersSnapshot.docs[0];
+            const userData = userDoc.data() as UserProfile;
+            return getStudentData(userData.uid, userData.displayName);
+        }
+        
+        throw new Error(`Student not found for email: ${email}`);
+    } catch (error) {
+        console.error('Error getting student data by email:', error);
+        throw error;
     }
 };
 
@@ -378,6 +474,13 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
             { name: 'Week 4', goals: goalCompletion, reflections: Math.round(avgReflectionDepth * 20), confidence: Math.round(avgTestPerformance * 0.8) },
         ];
 
+        // Create students list for admin dashboard
+        const studentsList = students.map(student => ({
+            id: student.studentId,
+            name: student.name,
+            email: student.studentId.includes('TEST_STUDENT') ? 'test@gmail.com' : `${student.name.toLowerCase().replace(' ', '.')}@example.com`
+        }));
+
         const adminData: AdminDashboardData = {
             kpis: {
                 goalCompletion,
@@ -385,6 +488,7 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
                 avgTestPerformance,
             },
             atRiskStudents: atRiskStudents.slice(0, 5), // Top 5 at-risk students
+            students: studentsList, // All students list
             engagementData
         };
 
@@ -409,6 +513,7 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
                 avgTestPerformance: 80,
             },
             atRiskStudents: [],
+            students: [], // Empty students list for fallback
             engagementData: [
                 { name: 'Week 1', goals: 75, reflections: 70, confidence: 65 },
                 { name: 'Week 2', goals: 70, reflections: 68, confidence: 60 },

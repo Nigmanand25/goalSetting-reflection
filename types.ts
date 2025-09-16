@@ -23,6 +23,7 @@ export interface SMARTScore {
 export interface Goal {
   text: string;
   smartScore?: SMARTScore;
+  smartPercentage?: number;  // Calculated percentage score (0-100)
   completed: boolean;
 }
 
@@ -108,5 +109,6 @@ export interface AdminDashboardData {
         avgTestPerformance: number;
     };
     atRiskStudents: AtRiskStudent[];
+    students: { id: string; name: string; email?: string }[]; // All students list
     engagementData: { name: string; goals: number; reflections: number; confidence: number }[];
 }

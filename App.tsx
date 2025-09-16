@@ -27,10 +27,12 @@ const App: React.FC = () => {
 
   // Show main app if user is authenticated
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans">
+    <div className="min-h-screen h-screen flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans overflow-hidden">
       <Header currentRole={userRole} />
-      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        {userRole === UserRole.STUDENT ? <StudentDashboard /> : <AdminDashboard />}
+      <main className="flex-1 overflow-auto">
+        <div className="h-full">
+          {userRole === UserRole.STUDENT ? <StudentDashboard /> : <AdminDashboard />}
+        </div>
       </main>
     </div>
   );

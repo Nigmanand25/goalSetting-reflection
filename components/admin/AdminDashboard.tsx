@@ -3,9 +3,10 @@ import KpiCard from './KpiCard';
 import RiskAlerts from './RiskAlerts';
 import EngagementChart from './EngagementChart';
 import AiSummary from './AiSummary';
+import StudentsList from './StudentsList';
 import { useApp } from '../../contexts/AppContext';
 import Card from '../shared/Card';
-import StudentDetailView from './StudentDetailView';
+import StudentAnalyticsDashboard from './StudentAnalyticsDashboard';
 
 const LoadingSkeleton: React.FC = () => (
     <div className="space-y-6 animate-pulse">
@@ -34,7 +35,7 @@ const AdminDashboard: React.FC = () => {
   if (error) return <Card><p className="text-center text-red-500">{error}</p></Card>;
 
   if (selectedStudent) {
-    return <StudentDetailView student={selectedStudent} onBack={clearStudentDetailsView} />;
+    return <StudentAnalyticsDashboard student={selectedStudent} onBack={clearStudentDetailsView} />;
   }
   
   if (!adminData) return <Card><p className="text-center text-slate-500">No admin data available.</p></Card>;
@@ -52,7 +53,14 @@ const AdminDashboard: React.FC = () => {
         <KpiCard title="Avg. Test Performance" value={`${adminData.kpis.avgTestPerformance}%`} trend={3} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 ${adminData.students ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+        {/* Students List - only show if students data is available */}
+        {adminData.students && (
+          <div className="lg:col-span-1">
+            <StudentsList students={adminData.students} onSelectStudent={viewStudentDetails} />
+          </div>
+        )}
+        
         {/* Risk Alerts */}
         <div className="lg:col-span-1">
           <RiskAlerts students={adminData.atRiskStudents} onSelectStudent={viewStudentDetails} />

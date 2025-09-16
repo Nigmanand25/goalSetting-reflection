@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode, useCallback } from 'react';
 import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, QuizEvaluation, ConfidenceLevel, SMARTScore } from '../types';
 import { useAuth } from './AuthContext';
-import { updateUserProgress, initializeUserProgress } from '../utils/progressUtils';
+import { updateUserProgress, initializeUserProgress, calculateAverageSmartScore } from '../utils/progressUtils';
 import * as firebaseService from '../services/firebaseServiceReal';
 
 // Helper function to clean undefined values from objects
@@ -82,16 +82,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       // Update user progress if SMART score is provided
       let updatedProgress = studentData.progress;
+      let smartPercentage: number | undefined;
       if (smartScore) {
         if (!updatedProgress) {
           updatedProgress = initializeUserProgress();
         }
         updatedProgress = updateUserProgress(updatedProgress, smartScore);
+        smartPercentage = calculateAverageSmartScore(smartScore);
       }
 
       const newEntry: DailyEntry = {
         date: new Date().toISOString(),
-        goal: { text: goalText, completed: false, smartScore },
+        goal: { text: goalText, completed: false, smartScore, smartPercentage },
       };
       const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, newEntry);
       

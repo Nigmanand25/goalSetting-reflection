@@ -1,5 +1,6 @@
 import { StudentData, AdminDashboardData, ConfidenceLevel, DailyEntry, Badge } from '../types';
 import { initializeUserProgress } from '../utils/progressUtils';
+import { TestDataGenerator } from '../scripts/generateTestData';
 
 // Master list of all available badges
 const ALL_BADGES: Badge[] = [
@@ -100,6 +101,13 @@ const MOCK_DB: MockDB = {
             { id: 'S240', name: 'Chloe Davis', reason: 'Low reflection depth', missedGoals: 1, avgReflectionDepth: 1.8, avgTestScore: 75 },
             { id: 'S315', name: 'David Evans', reason: 'Consistently low test scores', missedGoals: 0, avgReflectionDepth: 4.0, avgTestScore: 35 },
         ],
+        students: [
+            { id: 'S123', name: 'Alex Johnson', email: 'alex@example.com' },
+            { id: 'S101', name: 'Ben Carter', email: 'ben@example.com' },
+            { id: 'S240', name: 'Chloe Davis', email: 'chloe@example.com' },
+            { id: 'S315', name: 'David Evans', email: 'david@example.com' },
+            { id: 'TEST_STUDENT_001', name: 'Test Student', email: 'test@gmail.com' }
+        ],
         engagementData: [
             { name: 'Week 1', goals: 90, reflections: 85, confidence: 75 },
             { name: 'Week 2', goals: 85, reflections: 80, confidence: 70 },
@@ -108,6 +116,28 @@ const MOCK_DB: MockDB = {
         ]
     }
 };
+
+// Initialize test data for test@gmail.com
+const initializeTestData = () => {
+  const generator = new TestDataGenerator();
+  const testData = generator.generate15DaysData();
+  MOCK_DB.students['TEST_STUDENT_001'] = testData;
+  
+  console.log('🚀 Test data initialized for test@gmail.com:', {
+    studentId: 'TEST_STUDENT_001',
+    name: testData.name,
+    totalEntries: testData.entries.length,
+    completedGoals: testData.entries.filter(e => e.goal.completed).length,
+    reflections: testData.entries.filter(e => e.reflection).length,
+    quizzes: testData.entries.filter(e => e.quizEvaluation).length,
+    consistencyScore: testData.consistencyScore,
+    streak: testData.streak,
+    badges: testData.badges.length
+  });
+};
+
+// Initialize test data on module load
+initializeTestData();
 
 const simulateDelay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -162,6 +192,19 @@ export const getStudentData = async (studentId: string): Promise<StudentData> =>
     MOCK_DB.students[studentId] = JSON.parse(JSON.stringify(studentCopy)); // Persist awarded badges in mock DB
 
     return studentCopy;
+};
+
+export const getStudentDataByEmail = async (email: string): Promise<StudentData> => {
+    await simulateDelay(500);
+    
+    // For test@gmail.com, return the test student data
+    if (email === 'test@gmail.com') {
+        return getStudentData('TEST_STUDENT_001');
+    }
+    
+    // For other emails, you could implement lookup logic here
+    // For now, throw an error for unknown emails
+    throw new Error(`Student not found for email: ${email}`);
 };
 
 export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {

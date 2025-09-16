@@ -84,20 +84,28 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
   const meetsThreshold = analysis ? canSetGoal(analysis.score, requiredThreshold) : false;
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="flex-shrink-0 bg-indigo-500 rounded-full h-10 w-10 flex items-center justify-center text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-xl border-2 border-indigo-200 dark:border-slate-600 p-6 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-100 to-transparent dark:from-slate-700 dark:to-transparent rounded-full -translate-y-16 translate-x-16 opacity-40"></div>
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-100 to-transparent dark:from-slate-700 dark:to-transparent rounded-full translate-y-12 -translate-x-12 opacity-30"></div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl h-14 w-14 flex items-center justify-center text-white shadow-lg transform hover:scale-105 transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Set Today's Goal</h3>
+              <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">AI-powered SMART goal analysis</p>
+            </div>
           </div>
-          <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Set Today's Goal</h3>
-        </div>
-        <button
-          onClick={() => setShowThresholdInfo(!showThresholdInfo)}
-          className="text-blue-500 hover:text-blue-700 text-sm"
-        >
+          <button
+            onClick={() => setShowThresholdInfo(!showThresholdInfo)}
+            className="bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-medium border border-indigo-200 dark:border-slate-600 transition-all duration-200 shadow-sm hover:shadow-md"
+          >
           ℹ️ Progress Info
         </button>
       </div>
@@ -148,41 +156,50 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
         </div>
       </div>
 
-      <div className="mt-4">
-        <textarea
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-          placeholder="Enter your goal for today. Make it specific, measurable, achievable, relevant, and time-bound..."
-          className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
-          rows={4}
-        />
-      </div>
+        <div className="mt-6">
+          <div className="relative group">
+            <div className={`absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm`}></div>
+            <textarea
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="✨ Enter your goal for today. Make it specific, measurable, achievable, relevant, and time-bound..."
+              className="relative w-full p-4 border-2 border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-300 shadow-sm focus:shadow-lg text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 resize-none"
+              rows={4}
+            />
+            <div className="absolute bottom-3 right-3 text-xs text-slate-400 dark:text-slate-500">
+              {goal.trim().split(' ').filter(word => word.length > 0).length} words
+            </div>
+          </div>
+        </div>
 
-      <div className="flex space-x-3 mt-4">
-        <button
-          onClick={handleAnalyze}
-          disabled={!goal.trim() || loadingAnalysis}
-          className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center"
-        >
-          {loadingAnalysis ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Analyzing...
-            </>
-          ) : (
-            '🤖 Analyze with AI'
-          )}
-        </button>
+        <div className="flex space-x-3 mt-6">
+          <button
+            onClick={handleAnalyze}
+            disabled={!goal.trim() || loadingAnalysis}
+            className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none disabled:hover:scale-100"
+          >
+            {loadingAnalysis ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                <span>Analyzing...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-lg mr-2">🤖</span>
+                <span>Analyze with AI</span>
+              </>
+            )}
+          </button>
 
-        <button
-          onClick={handleSetGoal}
-          disabled={!goal.trim() || !analysis || !meetsThreshold || isSettingGoal}
-          className={`flex-1 py-2 px-4 rounded-md transition-colors flex items-center justify-center ${
-            meetsThreshold 
-              ? 'bg-green-500 hover:bg-green-600 text-white' 
-              : 'bg-gray-400 cursor-not-allowed text-white'
-          }`}
-        >
+          <button
+            onClick={handleSetGoal}
+            disabled={!goal.trim() || !analysis || !meetsThreshold || isSettingGoal}
+            className={`flex-1 py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center font-semibold shadow-lg transform ${
+              meetsThreshold 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white hover:shadow-xl hover:scale-105' 
+                : 'bg-gray-400 cursor-not-allowed text-white opacity-60'
+            }`}
+          >
           {isSettingGoal ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -227,7 +244,8 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
           )}
         </div>
       )}
-    </Card>
+      </div>
+    </div>
   );
 };
 

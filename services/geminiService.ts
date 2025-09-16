@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData } from '../types';
+import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData, Reflection, ConfidenceLevel } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
@@ -15,7 +15,7 @@ export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, f
   }
   
   const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: `Analyze the following student goal and rate it on a scale of 1 to 5 for each SMART principle (Specific, Measurable, Achievable, Realistic, Time-bound). Provide brief, constructive feedback. Goal: "${goal}"`,
       config: {
           responseMimeType: "application/json",
@@ -45,6 +45,97 @@ export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, f
 
   const jsonStr = response.text.trim();
   return JSON.parse(jsonStr);
+};
+
+// Function to analyze and validate reflection using AI
+export const analyzeReflection = async (reflectionText: string, goal: string): Promise<{
+  isValid: boolean;
+  depth: number;
+  confidenceLevel: ConfidenceLevel;
+  feedback: string;
+  suggestions: string[];
+}> => {
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
+    console.warn("VITE_GEMINI_API_KEY is not set. Using mock data for analyzeReflection.");
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return {
+      isValid: reflectionText.length > 50,
+      depth: Math.min(5, Math.max(1, Math.floor(reflectionText.length / 20))),
+      confidenceLevel: reflectionText.length > 100 ? ConfidenceLevel.HIGH : 
+                      reflectionText.length > 50 ? ConfidenceLevel.MEDIUM : ConfidenceLevel.LOW,
+      feedback: "This is a good reflection! Try to include more specific examples for better depth. (Mock Response)",
+      suggestions: ["Add specific examples", "Describe challenges faced", "Include lessons learned"]
+    };
+  }
+
+  const response = await ai.models.generateContent({
+    model: "gemini-1.5-flash",
+    contents: `Analyze this student reflection for a goal and provide detailed assessment:
+
+Goal: "${goal}"
+Reflection: "${reflectionText}"
+
+Evaluate the reflection on the following criteria:
+1. Validity: Is it a proper, detailed reflection (minimum 50 words, not just generic statements)?
+2. Depth: Rate 1-5 based on self-awareness, insight, and detail level
+3. Confidence Level: HIGH/MEDIUM/LOW based on the tone and conviction shown
+4. Provide constructive feedback and specific suggestions for improvement
+
+Reflection should demonstrate:
+- Self-awareness and honest assessment
+- Specific examples or experiences
+- Insights about challenges and successes  
+- Learning and growth mindset
+- Connection to the goal
+
+Reject reflections that are:
+- Too short (under 50 words)
+- Generic or copy-pasted
+- Not actually reflective (just stating facts)
+- Completely unrelated to the goal`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          isValid: {
+            type: Type.BOOLEAN,
+            description: "Whether the reflection meets quality standards"
+          },
+          depth: {
+            type: Type.INTEGER,
+            description: "Depth rating from 1-5"
+          },
+          confidenceLevel: {
+            type: Type.STRING,
+            description: "HIGH, MEDIUM, or LOW confidence level"
+          },
+          feedback: {
+            type: Type.STRING,
+            description: "Constructive feedback for the student"
+          },
+          suggestions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Specific suggestions for improvement"
+          }
+        },
+        required: ["isValid", "depth", "confidenceLevel", "feedback", "suggestions"]
+      }
+    }
+  });
+
+  const result = JSON.parse(response.text.trim());
+  
+  // Convert string confidence level to enum
+  const confidenceLevel = result.confidenceLevel === 'HIGH' ? ConfidenceLevel.HIGH :
+                         result.confidenceLevel === 'MEDIUM' ? ConfidenceLevel.MEDIUM :
+                         ConfidenceLevel.LOW;
+
+  return {
+    ...result,
+    confidenceLevel
+  };
 };
 
 // Function to generate a complete quiz based on goal and reflection
@@ -132,35 +223,45 @@ export const generatePersonalizedQuiz = async (goal: string, reflection?: string
         };
     }
 
-    const prompt = `Create a personalized 12-question multiple-choice quiz based on:
+    const prompt = `Create a personalized 12-question multiple-choice quiz specifically tailored to this student's goal and reflection:
     
     Goal: "${goal}"
-    ${reflection ? `Recent Reflection: "${reflection}"` : ''}
+    ${reflection ? `Student's Reflection: "${reflection}"` : ''}
     
     Instructions:
-    - Generate exactly 12 questions that help the user learn about achieving their specific goal
-    - Mix questions about goal-setting strategies, overcoming obstacles, productivity, motivation, and habits
-    - Make questions relevant to their goal and reflection content
-    - Each question should have 4 options with one correct answer
-    - Include practical, actionable knowledge
-    - Provide brief explanations for correct answers
+    - Generate exactly 12 questions that are DIRECTLY RELEVANT to their specific goal
+    - Base questions on the goal domain (fitness, learning, career, habits, etc.)
+    - If reflection is provided, incorporate insights from their reflection into questions
+    - Test knowledge that would help them succeed with THIS specific goal
+    - Include domain-specific strategies, common challenges, and best practices
+    - Each question should have 4 realistic options with one clearly correct answer
+    - Make it educational and actionable for their specific situation
+    - Provide detailed explanations that teach them something valuable
     
-    Topics to cover:
-    1. SMART goal principles
-    2. Breaking down large goals
-    3. Overcoming procrastination
-    4. Building motivation
-    5. Creating accountability
-    6. Time management
-    7. Habit formation
-    8. Dealing with setbacks
-    9. Measuring progress
-    10. Celebrating milestones
-    11. Goal-specific strategies
-    12. Reflection and adjustment`;
+    Example focus areas based on goal type:
+    - Fitness goals: exercise science, nutrition, motivation, progress tracking
+    - Learning goals: study techniques, memory, skill acquisition, practice methods
+    - Career goals: networking, skill development, interview preparation, productivity
+    - Habit goals: behavior change, consistency, environmental design, accountability
+    
+    Topics to customize based on their goal:
+    1. Domain-specific strategies and techniques
+    2. Common obstacles and how to overcome them  
+    3. Best practices for this type of goal
+    4. Motivation and consistency techniques
+    5. Progress measurement methods
+    6. Time management for this goal
+    7. Building supporting habits
+    8. Dealing with specific setbacks
+    9. Tools and resources for success
+    10. Milestone planning and celebration
+    11. Advanced techniques and optimization
+    12. Long-term sustainability strategies
+    
+    Make each question educational and directly applicable to achieving their specific goal.`;
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
             responseMimeType: "application/json",
@@ -225,7 +326,7 @@ export const generateWeeklySummary = async (adminData: AdminDashboardData): Prom
     `;
 
     const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
     });
     
