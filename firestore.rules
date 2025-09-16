@@ -9,13 +9,28 @@ service cloud.firestore {
       allow read, write: if true; // For development - make secure later
     }
     
-    // Daily entries collection  
+    // Daily entries collection (note: matches code's COLLECTIONS.DAILY_ENTRIES = 'dailyEntries')
     match /dailyEntries/{entryId} {
       allow read, write: if true; // For development - make secure later
     }
     
     // Admin dashboard data
     match /adminData/{document=**} {
+      allow read, write: if true; // For development - make secure later
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if true; // For development - make secure later
+    }
+    
+    // Admin users collection
+    match /adminUsers/{userId} {
+      allow read, write: if true; // For development - make secure later
+    }
+    
+    // Catch-all for development - allow everything
+    match /{document=**} {
       allow read, write: if true; // For development - make secure later
     }
   }
