@@ -294,12 +294,11 @@ export class TestDataGenerator {
     };
   }
 
-  // Method to add this data to the mock database
-  public addToMockDatabase(mockDb: any): void {
+  // Method to generate Firebase test data
+  public generateFirebaseData(): StudentData {
     const testData = this.generate15DaysData();
-    mockDb.students[this.testStudentId] = testData;
     
-    console.log('✅ Added 15 days of test data for:', {
+    console.log('✅ Generated 15 days of test data for Firebase:', {
       email: this.testEmail,
       studentId: this.testStudentId,
       name: this.testStudentName,
@@ -311,6 +310,8 @@ export class TestDataGenerator {
       streak: testData.streak,
       badges: testData.badges.length
     });
+    
+    return testData;
   }
 }
 

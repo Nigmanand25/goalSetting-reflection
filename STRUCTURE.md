@@ -79,10 +79,9 @@ Business logic and external API integrations:
 ```
 services/
 ├── authService.ts            # Authentication logic
-├── firebaseService.ts        # Firebase mock service
-├── firebaseServiceReal.ts    # Firebase real service
+├── firebaseServiceReal.ts    # Firebase service with real data
 ├── geminiService.ts          # Google Gemini AI integration
-├── mockData.ts              # Mock data for development
+├── authService.ts           # Authentication service
 └── index.ts                 # Service barrel exports
 ```
 

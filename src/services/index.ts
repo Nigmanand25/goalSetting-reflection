@@ -1,4 +1,3 @@
-export * from './firebaseService';
+export * from './firebaseServiceReal';
 export * from './geminiService';
-export * from './mockData';
 export * from './authService';
