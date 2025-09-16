@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Card from '../shared/Card';
 import { generateWeeklySummary } from '@/services/geminiService';
 import { AdminDashboardData } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AiSummaryProps {
     adminData: AdminDashboardData;
 }
 
 const AiSummary: React.FC<AiSummaryProps> = ({ adminData }) => {
+  const { user, userRole } = useAuth();
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +18,7 @@ const AiSummary: React.FC<AiSummaryProps> = ({ adminData }) => {
       if (!adminData) return;
       setLoading(true);
       try {
-        const result = await generateWeeklySummary(adminData);
+        const result = await generateWeeklySummary(adminData, user?.uid, userRole);
         setSummary(result);
       } catch (error) {
         console.error("Failed to generate summary:", error);

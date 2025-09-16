@@ -3,9 +3,11 @@ import Card from '../shared/Card';
 import { generatePersonalizedQuiz } from '@/services/geminiService';
 import { Quiz, QuizQuestion } from '@/types';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const QuizCard: React.FC = () => {
   const { studentData, addQuizResult } = useApp();
+  const { user, userRole } = useAuth();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -27,7 +29,7 @@ const QuizCard: React.FC = () => {
         const reflectionText = todaysEntry?.reflection?.text;
 
         console.log("Generating personalized quiz for:", { goalText, hasReflection: !!reflectionText });
-        const generatedQuiz = await generatePersonalizedQuiz(goalText, reflectionText);
+        const generatedQuiz = await generatePersonalizedQuiz(goalText, reflectionText, user?.uid, userRole);
         setQuiz(generatedQuiz);
         setUserAnswers(new Array(generatedQuiz.questions.length).fill(''));
       } catch (error) {

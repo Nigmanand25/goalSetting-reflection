@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Card from '../shared/Card';
 import { ConfidenceLevel } from '@/types';
 import { analyzeReflection } from '@/services/geminiService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReflectorProps {
   onReflectionSubmit: (text: string, depth: number, confidence: ConfidenceLevel) => Promise<void>;
@@ -9,6 +10,7 @@ interface ReflectorProps {
 }
 
 const Reflector: React.FC<ReflectorProps> = ({ onReflectionSubmit, todaysGoal }) => {
+  const { user, userRole } = useAuth();
   const [text, setText] = useState('');
   const [depth, setDepth] = useState(3);
   const [confidence, setConfidence] = useState<ConfidenceLevel>(ConfidenceLevel.MEDIUM);
@@ -40,7 +42,7 @@ const Reflector: React.FC<ReflectorProps> = ({ onReflectionSubmit, todaysGoal })
     setValidationError('');
     
     try {
-      const result = await analyzeReflection(text, goalToUse);
+      const result = await analyzeReflection(text, goalToUse, user?.uid, userRole);
       setAnalysisResult(result);
       
       if (result.isValid) {

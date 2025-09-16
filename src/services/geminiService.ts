@@ -1,13 +1,46 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData, Reflection, ConfidenceLevel } from '@/types';
+import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData, Reflection, ConfidenceLevel, UserRole } from '@/types';
+import { getUserProfile } from './firebaseServiceReal';
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+// Helper function to get API key based on user role
+const getApiKeyForUser = async (userId?: string, userRole?: UserRole): Promise<string> => {
+  // Admin users use .env API key
+  if (userRole === UserRole.ADMIN) {
+    if (!import.meta.env.VITE_GEMINI_API_KEY) {
+      throw new Error("Admin Gemini API key is not configured in environment variables.");
+    }
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+
+  // Student users use their personal API key
+  if (userId) {
+    try {
+      const userProfile = await getUserProfile(userId);
+      if (userProfile?.geminiApiKey) {
+        return userProfile.geminiApiKey;
+      }
+    } catch (error) {
+      console.error('Error getting user API key:', error);
+    }
+  }
+
+  // Fallback to .env key if no user key is found
+  if (import.meta.env.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+
+  throw new Error("No Gemini API key available. Please configure your API key in Settings.");
+};
+
+// Create AI instance with dynamic API key
+const createAIInstance = async (userId?: string, userRole?: UserRole): Promise<GoogleGenAI> => {
+  const apiKey = await getApiKeyForUser(userId, userRole);
+  return new GoogleGenAI({ apiKey });
+};
 
 // Function to get SMART score analysis from Gemini API
-export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, feedback: string}> => {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-      throw new Error("Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your environment variables.");
-  }
+export const getSmartScore = async (goal: string, userId?: string, userRole?: UserRole): Promise<{score: SMARTScore, feedback: string}> => {
+  const ai = await createAIInstance(userId, userRole);
   
   const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",
@@ -43,16 +76,13 @@ export const getSmartScore = async (goal: string): Promise<{score: SMARTScore, f
 };
 
 // Function to analyze and validate reflection using AI
-export const analyzeReflection = async (reflectionText: string, goal: string): Promise<{
+export const analyzeReflection = async (reflectionText: string, goal: string, userId?: string, userRole?: UserRole): Promise<{
   isValid: boolean;
   depth: number;
   confidenceLevel: ConfidenceLevel;
   feedback: string;
-  suggestions: string[];
 }> => {
-  if (!import.meta.env.VITE_GEMINI_API_KEY) {
-    throw new Error("Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your environment variables.");
-  }
+  const ai = await createAIInstance(userId, userRole);
 
   const response = await ai.models.generateContent({
     model: "gemini-1.5-flash",
@@ -125,10 +155,8 @@ Reject reflections that are:
 };
 
 // Function to generate a complete quiz based on goal and reflection
-export const generatePersonalizedQuiz = async (goal: string, reflection?: string): Promise<Quiz> => {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error("Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your environment variables.");
-    }
+export const generatePersonalizedQuiz = async (goal: string, reflection?: string, userId?: string, userRole?: UserRole): Promise<Quiz> => {
+    const ai = await createAIInstance(userId, userRole);
 
     const prompt = `Create a personalized 12-question multiple-choice quiz specifically tailored to this student's goal and reflection:
     
@@ -204,8 +232,8 @@ export const generatePersonalizedQuiz = async (goal: string, reflection?: string
 };
 
 // Legacy function for backward compatibility
-export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion> => {
-    const quiz = await generatePersonalizedQuiz(topic);
+export const generateQuizQuestion = async (topic: string, userId?: string, userRole?: UserRole): Promise<QuizQuestion> => {
+    const quiz = await generatePersonalizedQuiz(topic, undefined, userId, userRole);
     return quiz.questions[0] || {
         question: "What is the most important factor in achieving goals?",
         options: ["Luck", "Consistent daily action", "Perfect planning", "Waiting for motivation"],
@@ -214,11 +242,9 @@ export const generateQuizQuestion = async (topic: string): Promise<QuizQuestion>
     };
 };
 
-// Function to generate a weekly summary from Gemini API
-export const generateWeeklySummary = async (adminData: AdminDashboardData): Promise<string> => {
-    if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error("Gemini API key is not configured. Please add VITE_GEMINI_API_KEY to your environment variables.");
-    }
+// Function to generate a weekly summary from Gemini API  
+export const generateWeeklySummary = async (adminData: AdminDashboardData, userId?: string, userRole?: UserRole): Promise<string> => {
+    const ai = await createAIInstance(userId, userRole);
     
     const prompt = `
         You are an expert educational analyst. Based on the following weekly data for a student cohort, provide a concise, actionable summary (3-4 sentences). 
@@ -236,4 +262,21 @@ export const generateWeeklySummary = async (adminData: AdminDashboardData): Prom
     });
     
     return response.text;
+};
+
+// Function to test if an API key is valid
+export const testGeminiAPI = async (apiKey: string): Promise<boolean> => {
+    try {
+        const testAI = new GoogleGenAI({ apiKey });
+        const response = await testAI.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: "Test message: Please respond with 'API key is working'",
+        });
+        
+        const responseText = response.text.toLowerCase();
+        return responseText.includes('api key is working') || responseText.includes('working');
+    } catch (error) {
+        console.error('API key test failed:', error);
+        return false;
+    }
 };

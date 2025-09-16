@@ -25,6 +25,8 @@ interface UserProfile {
     role: UserRole;
     createdAt: Date;
     lastLoginAt: Date;
+    geminiApiKey?: string;
+    apiKeyUpdatedAt?: string;
 }
 
 // Firestore collection names
@@ -316,6 +318,19 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
             console.error('🔐 Firestore Security Rules Issue: Please check Firebase Console → Firestore Database → Rules');
         }
         return null;
+    }
+};
+
+// Update user profile
+export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>): Promise<void> => {
+    try {
+        await updateDoc(doc(db, COLLECTIONS.USERS, uid), {
+            ...updates,
+            lastUpdatedAt: new Date()
+        });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        throw error;
     }
 };
 

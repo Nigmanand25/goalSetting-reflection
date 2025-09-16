@@ -4,6 +4,7 @@ import SmartScoreDisplay from '../shared/SmartScoreDisplay';
 import { getSmartScore } from '@/services/geminiService';
 import { SMARTScore } from '@/types';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   calculateAverageSmartScore, 
   canSetGoal, 
@@ -16,6 +17,7 @@ interface GoalSetterProps {
 
 const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
   const { studentData } = useApp();
+  const { user, userRole } = useAuth();
   const [goal, setGoal] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [isSettingGoal, setIsSettingGoal] = useState(false);
@@ -31,7 +33,7 @@ const GoalSetter: React.FC<GoalSetterProps> = ({ onGoalSet }) => {
     setLoadingAnalysis(true);
     setAnalysis(null);
     try {
-      const result = await getSmartScore(goal);
+      const result = await getSmartScore(goal, user?.uid, userRole);
       setAnalysis(result);
     } catch (error) {
       console.error("Error analyzing goal:", error);
