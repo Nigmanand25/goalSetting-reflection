@@ -421,12 +421,19 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
             { name: 'Week 4', goals: goalCompletion, reflections: Math.round(avgReflectionDepth * 20), confidence: Math.round(avgTestPerformance * 0.8) },
         ];
 
-        // Create students list for admin dashboard
-        const studentsList = students.map(student => ({
-            id: student.studentId,
-            name: student.name,
-            email: `${student.name.toLowerCase().replace(' ', '.')}@example.com`
-        }));
+        // Get real users with student role for admin dashboard
+        const usersQuery = query(collection(db, COLLECTIONS.USERS), where('role', '==', 'student'));
+        const usersSnapshot = await getDocs(usersQuery);
+        
+        const studentsList: { id: string; name: string; email: string; }[] = [];
+        usersSnapshot.forEach((doc) => {
+            const userData = doc.data();
+            studentsList.push({
+                id: doc.id,
+                name: userData.name || userData.displayName || 'Anonymous Student',
+                email: userData.email || 'No email'
+            });
+        });
 
         const adminData: AdminDashboardData = {
             kpis: {
