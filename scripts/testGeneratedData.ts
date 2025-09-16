@@ -1,4 +1,4 @@
-import { getStudentDataByEmail } from '../services/firebaseService';
+import { getStudentDataByEmail } from '../src/services/firebaseService';
 
 // Script to test the generated data
 async function testGeneratedData() {

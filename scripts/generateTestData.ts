@@ -1,4 +1,5 @@
-import { StudentData, DailyEntry, Goal, Reflection, QuizEvaluation, ConfidenceLevel, SMARTScore, Badge } from '../types';
+import { StudentData, DailyEntry, Goal, Reflection, QuizEvaluation, ConfidenceLevel, SMARTScore, Badge } from '../src/types';
+import { db } from './firebase-node';
 
 // Comprehensive data generator for test student
 export class TestDataGenerator {
