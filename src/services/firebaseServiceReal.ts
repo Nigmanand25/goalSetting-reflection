@@ -14,7 +14,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { StudentData, AdminDashboardData, DailyEntry, Badge, AtRiskStudent, UserRole } from '../types';
-import { TestDataGenerator } from '../../scripts/generateTestData';
 
 
 // User profile interface for Firebase
@@ -46,54 +45,7 @@ const ALL_BADGES: Badge[] = [
     { id: 'perfect-week', name: 'Perfect Week', description: 'Completed every goal for a full 7 days.', icon: '⭐' },
 ];
 
-// Initialize test data for test@gmail.com
-const initializeTestDataInFirebase = async (): Promise<void> => {
-    try {
-        // Check if test student already exists
-        const testStudentRef = doc(db, COLLECTIONS.STUDENTS, 'TEST_STUDENT_001');
-        const testStudentDoc = await getDoc(testStudentRef);
-        
-        if (!testStudentDoc.exists()) {
-            console.log('🚀 Initializing test data for test@gmail.com...');
-            
-            const generator = new TestDataGenerator();
-            const testData = generator.generate15DaysData();
-            
-            // Add test student data to Firestore
-            await setDoc(testStudentRef, testData);
-            
-            // Add each daily entry to the dailyEntries collection
-            for (const entry of testData.entries) {
-                const entryRef = doc(collection(db, COLLECTIONS.DAILY_ENTRIES));
-                await setDoc(entryRef, {
-                    ...entry,
-                    studentId: testData.studentId,
-                    createdAt: new Date(entry.date),
-                    updatedAt: new Date()
-                });
-            }
-            
-            console.log('✅ Test data successfully added to Firebase:', {
-                studentId: testData.studentId,
-                name: testData.name,
-                totalEntries: testData.entries.length,
-                completedGoals: testData.entries.filter(e => e.goal.completed).length,
-                reflections: testData.entries.filter(e => e.reflection).length,
-                quizzes: testData.entries.filter(e => e.quizEvaluation).length,
-                consistencyScore: testData.consistencyScore,
-                streak: testData.streak,
-                badges: testData.badges.length
-            });
-        } else {
-            console.log('ℹ️ Test data already exists in Firebase');
-        }
-    } catch (error) {
-        console.error('❌ Error initializing test data:', error);
-    }
-};
 
-// Call initialization on module load
-initializeTestDataInFirebase();
 
 // Helper function to check and award badges
 const checkAndAwardBadges = (student: StudentData): StudentData => {
@@ -215,15 +167,10 @@ export const getStudentAnalytics = async (studentId: string): Promise<StudentDat
     }
 };
 
-// Get student data by email (for test@gmail.com)
+// Get student data by email
 export const getStudentDataByEmail = async (email: string): Promise<StudentData> => {
     try {
-        // For test@gmail.com, return the test student data
-        if (email === 'test@gmail.com') {
-            return getStudentData('TEST_STUDENT_001', 'Test Student');
-        }
-        
-        // For other emails, try to find student by email in user profiles
+        // Try to find student by email in user profiles
         const usersQuery = query(
             collection(db, COLLECTIONS.USERS),
             where('email', '==', email),
@@ -478,7 +425,7 @@ export const getAdminDashboardData = async (): Promise<AdminDashboardData> => {
         const studentsList = students.map(student => ({
             id: student.studentId,
             name: student.name,
-            email: student.studentId.includes('TEST_STUDENT') ? 'test@gmail.com' : `${student.name.toLowerCase().replace(' ', '.')}@example.com`
+            email: `${student.name.toLowerCase().replace(' ', '.')}@example.com`
         }));
 
         const adminData: AdminDashboardData = {

@@ -19,7 +19,7 @@ goalSetting-reflection/
 │   ├── App.tsx                # Main application component
 │   ├── main.tsx               # Application entry point
 │   └── index.ts               # Main barrel export
-├── 📁 scripts/                # Build and utility scripts
+├── 📁 scripts/                # Build and utility scripts (minimal)
 ├── 📁 public/                 # Static public assets
 ├── index.html                 # HTML template
 ├── vite.config.ts            # Vite configuration

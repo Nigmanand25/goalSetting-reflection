@@ -67,7 +67,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (err instanceof Error && err.message.includes('permission-denied')) {
         setError('Firebase permission denied. Please check Firestore security rules or contact the administrator.');
       } else if (err instanceof Error && err.message.includes('No data found')) {
-        setError('No data found in Firebase. Please generate test data first.');
+        setError('No data found in Firebase. Please ensure the application is being used by students.');
       } else {
         setError('Failed to fetch data. Please try again later.');
       }
