@@ -27,7 +27,8 @@ const AdminConsole: React.FC = () => {
       setMessage(`✅ User promoted to admin`);
       loadAllUsers(); // Refresh list
     } catch (error) {
-      setMessage('❌ Failed to promote user');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to promote user';
+      setMessage(`❌ ${errorMessage}`);
     }
   };
 
@@ -37,7 +38,8 @@ const AdminConsole: React.FC = () => {
       setMessage(`✅ User demoted to student`);
       loadAllUsers(); // Refresh list
     } catch (error) {
-      setMessage('❌ Failed to demote user');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to demote user';
+      setMessage(`❌ ${errorMessage}`);
     }
   };
 
@@ -47,13 +49,14 @@ const AdminConsole: React.FC = () => {
       await promoteToAdmin(user.uid);
       setMessage(`✅ You are now an admin! Refresh the page.`);
     } catch (error) {
-      setMessage('❌ Failed to make you admin');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to make you admin';
+      setMessage(`❌ ${errorMessage}`);
     }
   };
 
   return (
     <Card className="mt-6">
-      <h3 className="text-xl font-semibold mb-4">🔧 Admin Console (Development Only)</h3>
+      <h3 className="text-xl font-semibold mb-4">� User Management</h3>
       
       {/* Quick Admin Button */}
       <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
@@ -121,12 +124,12 @@ const AdminConsole: React.FC = () => {
       </div>
 
       <div className="mt-4 p-3 bg-slate-100 dark:bg-slate-800 rounded-md">
-        <h5 className="font-medium mb-2">Development Notes:</h5>
+        <h5 className="font-medium mb-2">ℹ️ User Management Notes:</h5>
         <ul className="text-sm space-y-1 text-slate-600 dark:text-slate-400">
-          <li>• This console is for development/testing only</li>
-          <li>• In production, remove this component</li>
-          <li>• Admin access should be controlled via Firebase Console</li>
-          <li>• Use email-based auto-admin for permanent admins</li>
+          <li>• Use this section to manage user roles and permissions</li>
+          <li>• Promote students to admin to give them dashboard access</li>
+          <li>• Demote admins back to students to revoke dashboard access</li>
+          <li>• Changes take effect immediately</li>
         </ul>
       </div>
     </Card>

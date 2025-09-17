@@ -1,5 +1,6 @@
 import React from 'react';
 import { ApiSettings } from './shared/ApiSettings';
+import AdminConsole from './admin/AdminConsole';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
 
@@ -86,6 +87,26 @@ export const SettingsPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Admin User Management Section - Only for Admins */}
+          {isAdmin && (
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 backdrop-blur-sm rounded-xl shadow-lg border border-red-200/50 dark:border-red-700/50">
+              <div className="p-6 border-b border-red-200/50 dark:border-red-700/50">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg">
+                    <span className="text-white text-lg">👥</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">User Management</h2>
+                    <p className="text-slate-600 dark:text-slate-400 mt-1">Manage user roles and permissions</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6">
+                <AdminConsole />
               </div>
             </div>
           )}

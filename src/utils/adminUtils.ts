@@ -5,6 +5,7 @@ import {
   updateDoc, 
   deleteDoc,
   getDocs,
+  getDoc,
   query,
   where,
   orderBy 
@@ -17,8 +18,16 @@ import { UserRole } from '@/types';
 // Make user admin
 export const promoteToAdmin = async (userId: string): Promise<void> => {
   try {
+    // First check if user exists in users collection
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      throw new Error(`User ${userId} does not exist in the database`);
+    }
+    
     // Update user role in users collection
-    await updateDoc(doc(db, 'users', userId), {
+    await updateDoc(userRef, {
       role: UserRole.ADMIN,
       updatedAt: new Date()
     });
@@ -39,8 +48,16 @@ export const promoteToAdmin = async (userId: string): Promise<void> => {
 // Remove admin privileges
 export const demoteFromAdmin = async (userId: string): Promise<void> => {
   try {
+    // First check if user exists in users collection
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    
+    if (!userSnap.exists()) {
+      throw new Error(`User ${userId} does not exist in the database`);
+    }
+    
     // Update user role in users collection
-    await updateDoc(doc(db, 'users', userId), {
+    await updateDoc(userRef, {
       role: UserRole.STUDENT,
       updatedAt: new Date()
     });
