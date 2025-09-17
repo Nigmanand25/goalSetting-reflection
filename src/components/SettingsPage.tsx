@@ -1,5 +1,6 @@
 import React from 'react';
 import { ApiSettings } from './shared/ApiSettings';
+import { AdminApiSettings } from './shared/AdminApiSettings';
 import AdminConsole from './admin/AdminConsole';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
@@ -53,40 +54,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
               <div className="p-6">
-                <div className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                      <span className="text-2xl">✅</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Admin API Active</h3>
-                      <p className="text-slate-600 dark:text-slate-400">Using centrally configured Gemini API key</p>
-                    </div>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
-                      <h4 className="font-medium text-slate-900 dark:text-white mb-2">🔑 API Status</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Environment configured</p>
-                      <div className="mt-2 flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-green-600 dark:text-green-400">Active</span>
-                      </div>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
-                      <h4 className="font-medium text-slate-900 dark:text-white mb-2">🎯 Features</h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">All AI features available</p>
-                      <div className="mt-2 flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-xs text-blue-600 dark:text-blue-400">Full Access</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
-                    <p className="text-sm text-blue-700 dark:text-blue-400">
-                      <strong>Note:</strong> As an administrator, your AI features use the system-wide API configuration. Students can configure their own personal API keys.
-                    </p>
-                  </div>
-                </div>
+                <AdminApiSettings />
               </div>
             </div>
           )}

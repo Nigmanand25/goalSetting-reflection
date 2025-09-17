@@ -1,13 +1,33 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SMARTScore, QuizQuestion, Quiz, AdminDashboardData, Reflection, ConfidenceLevel, UserRole } from '@/types';
 import { getUserProfile } from './firebaseServiceReal';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
+// Helper function to get system API key from Firestore
+const getSystemApiKey = async (): Promise<string | null> => {
+  try {
+    const configRef = doc(db, 'adminConfig', 'system');
+    const configSnap = await getDoc(configRef);
+    if (configSnap.exists() && configSnap.data()?.geminiApiKey) {
+      return configSnap.data().geminiApiKey;
+    }
+  } catch (error) {
+    console.error('Error getting system API key:', error);
+  }
+  return null;
+};
 
 // Helper function to get API key based on user role
 const getApiKeyForUser = async (userId?: string, userRole?: UserRole): Promise<string> => {
-  // Admin users use .env API key
+  // Admin users use system API key from Firestore, fallback to .env
   if (userRole === UserRole.ADMIN) {
+    const systemKey = await getSystemApiKey();
+    if (systemKey) {
+      return systemKey;
+    }
     if (!import.meta.env.VITE_GEMINI_API_KEY) {
-      throw new Error("Admin Gemini API key is not configured in environment variables.");
+      throw new Error("Admin Gemini API key is not configured. Please set it in Settings.");
     }
     return import.meta.env.VITE_GEMINI_API_KEY;
   }
@@ -24,7 +44,12 @@ const getApiKeyForUser = async (userId?: string, userRole?: UserRole): Promise<s
     }
   }
 
-  // Fallback to .env key if no user key is found
+  // Fallback to system key or .env key if no user key is found
+  const systemKey = await getSystemApiKey();
+  if (systemKey) {
+    return systemKey;
+  }
+
   if (import.meta.env.VITE_GEMINI_API_KEY) {
     return import.meta.env.VITE_GEMINI_API_KEY;
   }
