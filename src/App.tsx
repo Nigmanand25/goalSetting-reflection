@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { StudentDashboard, AdminDashboard } from './components';
 import { LoginPage } from './components/auth';
 import { Header } from './components/shared';
@@ -7,6 +7,20 @@ import { SettingsPage } from './components/SettingsPage';
 import { FirstTimeApiSetup } from './components/shared/FirstTimeApiSetup';
 import { UserRole } from './types';
 import { useApp, useAuth } from './contexts';
+
+// Component to handle student detail route with URL params
+const AdminStudentDetailRoute: React.FC = () => {
+  const { studentId } = useParams<{ studentId: string }>();
+  const { viewStudentDetails, selectedStudent } = useApp();
+  
+  React.useEffect(() => {
+    if (studentId && (!selectedStudent || selectedStudent.studentId !== studentId)) {
+      viewStudentDetails(studentId);
+    }
+  }, [studentId]); // Only depend on studentId, not viewStudentDetails
+  
+  return <AdminDashboard />;
+};
 
 const App: React.FC = () => {
   const { userRole } = useApp();
@@ -47,6 +61,7 @@ const App: React.FC = () => {
               {/* Admin Routes */}
               {userRole === UserRole.ADMIN && (
                 <>
+                  <Route path="/admin/students/:studentId" element={<AdminStudentDetailRoute />} />
                   <Route path="/" element={<AdminDashboard />} />
                   <Route path="/dashboard" element={<AdminDashboard />} />
                   <Route path="/admin" element={<AdminDashboard />} />

@@ -175,7 +175,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const viewStudentDetails = async (studentId: string) => {
+  const viewStudentDetails = useCallback(async (studentId: string) => {
     setLoading(true);
     setError(null);
     try {
@@ -187,11 +187,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
         setLoading(false);
     }
-  };
+  }, []);
 
-  const clearStudentDetailsView = () => {
+  const clearStudentDetailsView = useCallback(() => {
     setSelectedStudent(null);
-  };
+  }, []);
 
 
   return (

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../shared/Card';
 import { AtRiskStudent } from '@/types';
 
@@ -8,6 +9,14 @@ interface RiskAlertsProps {
 }
 
 const RiskAlerts: React.FC<RiskAlertsProps> = ({ students, onSelectStudent }) => {
+  const navigate = useNavigate();
+
+  const handleStudentClick = (studentId: string) => {
+    // Update URL to show student detail route
+    navigate(`/admin/students/${studentId}`);
+    // Keep existing behavior
+    onSelectStudent(studentId);
+  };
   return (
     <Card>
       <div className="flex items-center space-x-3">
@@ -23,7 +32,7 @@ const RiskAlerts: React.FC<RiskAlertsProps> = ({ students, onSelectStudent }) =>
         {students.map(student => (
           <li key={student.id}>
             <button 
-              onClick={() => onSelectStudent(student.id)}
+              onClick={() => handleStudentClick(student.id)}
               className="w-full text-left py-3 px-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors duration-200"
               aria-label={`View details for ${student.name}`}
             >

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../shared/Card';
 
 interface Student {
@@ -13,6 +14,14 @@ interface StudentsListProps {
 }
 
 const StudentsList: React.FC<StudentsListProps> = ({ students, onSelectStudent }) => {
+  const navigate = useNavigate();
+
+  const handleStudentClick = (studentId: string) => {
+    // Update URL to show student detail route
+    navigate(`/admin/students/${studentId}`);
+    // Keep existing behavior
+    onSelectStudent(studentId);
+  };
   return (
     <Card className="h-full">
       <div className="flex items-center justify-between mb-4">
@@ -29,7 +38,7 @@ const StudentsList: React.FC<StudentsListProps> = ({ students, onSelectStudent }
         {students?.map((student) => (
           <div
             key={student.id}
-            onClick={() => onSelectStudent(student.id)}
+            onClick={() => handleStudentClick(student.id)}
             className="group p-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-all duration-200"
           >
             <div className="flex items-center justify-between">
