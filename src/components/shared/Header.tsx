@@ -1,16 +1,17 @@
 
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { UserRole } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface HeaderProps {
   currentRole: UserRole;
-  currentPage?: string;
-  onNavigate?: (page: 'dashboard' | 'settings') => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentRole, currentPage = 'dashboard', onNavigate }) => {
+const Header: React.FC<HeaderProps> = ({ currentRole }) => {
   const { user, signOut } = useAuth();
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   return (
     <header className="bg-white dark:bg-slate-800 shadow-lg border-b border-slate-200 dark:border-slate-700">
@@ -36,58 +37,58 @@ const Header: React.FC<HeaderProps> = ({ currentRole, currentPage = 'dashboard',
           {/* Right Side - Navigation & User */}
           <div className="flex items-center space-x-6">
             {/* Navigation */}
-            {user && onNavigate && (
+            {user && (
               <nav className="hidden md:flex items-center space-x-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                <button
-                  onClick={() => onNavigate('dashboard')}
+                <Link
+                  to="/"
                   className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    currentPage === 'dashboard'
+                    currentPath === '/' || currentPath === '/dashboard'
                       ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                       : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   <span>📊</span>
                   <span>Dashboard</span>
-                </button>
-                <button
-                  onClick={() => onNavigate('settings')}
+                </Link>
+                <Link
+                  to="/settings"
                   className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                    currentPage === 'settings'
+                    currentPath === '/settings'
                       ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
                       : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
                   }`}
                 >
                   <span>⚙️</span>
                   <span>Settings</span>
-                </button>
+                </Link>
               </nav>
             )}
 
             {/* Mobile Navigation */}
-            {user && onNavigate && (
+            {user && (
               <nav className="md:hidden flex items-center space-x-2">
-                <button
-                  onClick={() => onNavigate('dashboard')}
+                <Link
+                  to="/"
                   className={`p-2 rounded-lg transition-colors ${
-                    currentPage === 'dashboard'
+                    currentPath === '/' || currentPath === '/dashboard'
                       ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                   title="Dashboard"
                 >
                   📊
-                </button>
-                <button
-                  onClick={() => onNavigate('settings')}
+                </Link>
+                <Link
+                  to="/settings"
                   className={`p-2 rounded-lg transition-colors ${
-                    currentPage === 'settings'
+                    currentPath === '/settings'
                       ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400'
                       : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                   }`}
                   title="Settings"
                 >
                   ⚙️
-                </button>
+                </Link>
               </nav>
             )}
 

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { StudentDashboard, AdminDashboard } from './components';
 import { LoginPage } from './components/auth';
 import { Header } from './components/shared';
@@ -7,12 +8,9 @@ import { FirstTimeApiSetup } from './components/shared/FirstTimeApiSetup';
 import { UserRole } from './types';
 import { useApp, useAuth } from './contexts';
 
-type Page = 'dashboard' | 'settings';
-
 const App: React.FC = () => {
   const { userRole } = useApp();
   const { user, loading } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -28,25 +26,45 @@ const App: React.FC = () => {
     return <LoginPage />;
   }
 
-  // Show main app if user is authenticated
+  // Main app with routing
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-800 dark:text-slate-200 font-sans">
-      <Header currentRole={userRole} currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main className="flex-1 w-full">
-        <div className="w-full h-full min-h-[calc(100vh-80px)]">
-          {currentPage === 'settings' ? (
-            <SettingsPage />
-          ) : (
-            <div className="w-full h-full">
-              {userRole === UserRole.STUDENT ? <StudentDashboard /> : <AdminDashboard />}
-            </div>
-          )}
-        </div>
-      </main>
-      
-      {/* First time API setup modal */}
-      <FirstTimeApiSetup />
-    </div>
+    <Router>
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-800 dark:text-slate-200 font-sans">
+        <Header currentRole={userRole} />
+        <main className="flex-1 w-full">
+          <div className="w-full h-full min-h-[calc(100vh-80px)]">
+            <Routes>
+              {/* Student Routes */}
+              {userRole === UserRole.STUDENT && (
+                <>
+                  <Route path="/" element={<StudentDashboard />} />
+                  <Route path="/dashboard" element={<StudentDashboard />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </>
+              )}
+              
+              {/* Admin Routes */}
+              {userRole === UserRole.ADMIN && (
+                <>
+                  <Route path="/" element={<AdminDashboard />} />
+                  <Route path="/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </>
+              )}
+              
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </main>
+        
+        {/* First time API setup modal */}
+        <FirstTimeApiSetup />
+      </div>
+    </Router>
   );
 };
 

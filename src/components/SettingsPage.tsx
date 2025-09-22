@@ -1,6 +1,5 @@
 import React from 'react';
-import { ApiSettings } from './shared/ApiSettings';
-import { AdminApiSettings } from './shared/AdminApiSettings';
+import { ApiKeySettings } from './shared/ApiKeySettings';
 import AdminConsole from './admin/AdminConsole';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole } from '../types';
@@ -36,7 +35,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
               <div className="p-6">
-                <ApiSettings />
+                <ApiKeySettings mode="personal" />
               </div>
             </div>
           ) : (
@@ -54,7 +53,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
               </div>
               <div className="p-6">
-                <AdminApiSettings />
+                <ApiKeySettings mode="system" />
               </div>
             </div>
           )}
