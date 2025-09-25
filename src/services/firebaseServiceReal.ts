@@ -87,6 +87,54 @@ const checkAndAwardBadges = (student: StudentData): StudentData => {
     return student;
 };
 
+// Calculate consistency score and current streak based on daily entries
+const calculateConsistencyAndStreak = (entries: DailyEntry[]): { consistencyScore: number; streak: number } => {
+    if (entries.length === 0) {
+        return { consistencyScore: 0, streak: 0 };
+    }
+
+    // Sort entries by date ascending (oldest first) for streak calculation
+    const sortedEntries = [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Calculate consistency score (last 30 days or all entries if less than 30)
+    const last30Days = sortedEntries.slice(-30);
+    const activeDays = last30Days.filter(entry => 
+        entry.goal || entry.reflection || entry.quizEvaluation
+    ).length;
+    const consistencyScore = Math.round((activeDays / Math.min(30, entries.length)) * 100);
+
+    // Calculate current streak (consecutive days from most recent)
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Start from most recent entry and work backwards
+    const recentEntries = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    for (let i = 0; i < recentEntries.length; i++) {
+        const entryDate = new Date(recentEntries[i].date);
+        entryDate.setHours(0, 0, 0, 0);
+        
+        const expectedDate = new Date(today);
+        expectedDate.setDate(today.getDate() - i);
+        
+        // Check if this entry is from the expected consecutive day
+        if (entryDate.getTime() === expectedDate.getTime()) {
+            // Check if the day had meaningful activity
+            const entry = recentEntries[i];
+            if (entry.goal || entry.reflection || entry.quizEvaluation) {
+                streak++;
+            } else {
+                break; // Break streak if no meaningful activity
+            }
+        } else {
+            break; // Break streak if day is missing
+        }
+    }
+
+    return { consistencyScore, streak };
+};
+
 // Get student data from Firestore (now uses authenticated user ID)
 export const getStudentData = async (studentId: string, displayName?: string): Promise<StudentData> => {
     try {
@@ -135,12 +183,19 @@ export const getStudentData = async (studentId: string, displayName?: string): P
         
         studentData.entries = entries;
         
+        // Calculate dynamic consistency score and streak
+        const { consistencyScore, streak } = calculateConsistencyAndStreak(entries);
+        studentData.consistencyScore = consistencyScore;
+        studentData.streak = streak;
+        
         // Check and award badges
         studentData = checkAndAwardBadges(studentData);
         
-        // Update student document with new badges if any were awarded
+        // Update student document with calculated values and badges
         await updateDoc(doc(db, COLLECTIONS.STUDENTS, studentId), {
-            badges: studentData.badges
+            badges: studentData.badges,
+            consistencyScore: studentData.consistencyScore,
+            streak: studentData.streak
         });
 
         return studentData;
