@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StudentData, ConfidenceLevel } from '@/types';
 import Card from '../shared/Card';
 import SmartScoreAnalytics from './SmartScoreAnalytics';
@@ -7,6 +7,9 @@ import QuizAnalytics from './QuizAnalytics';
 import EngagementAnalytics from './EngagementAnalytics';
 import Timeline from '../student/Timeline';
 import Badges from '../student/Badges';
+import { calculateGoalSuccessRate } from '@/services/geminiService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useApp } from '@/contexts/AppContext';
 
 interface StudentAnalyticsDashboardProps {
   student: StudentData;
@@ -87,14 +90,121 @@ const StatusBadge: React.FC<{ status: 'excellent' | 'good' | 'average' | 'needs-
 
 const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ student, onBack }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'timeline'>('overview');
+  const { user, userRole } = useAuth();
+  const { removeUser } = useApp();
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   
-  // Enhanced Analytics Calculations
+  // AI-powered Goal Success Rate State
+  const [aiSuccessRate, setAiSuccessRate] = useState<{
+    rate: number;
+    analysis: string;
+    insights: string[];
+    loading: boolean;
+    error: string | null;
+  }>({
+    rate: 0,
+    analysis: '',
+    insights: [],
+    loading: true,
+    error: null
+  });
+
+  // Calculate AI-powered goal success rate on component mount
+  useEffect(() => {
+    const calculateAISuccessRate = async () => {
+      if (!student.entries || student.entries.length === 0) {
+        setAiSuccessRate({
+          rate: 0,
+          analysis: 'No data available for analysis',
+          insights: ['Start setting daily goals', 'Add reflections to track progress'],
+          loading: false,
+          error: null
+        });
+        return;
+      }
+
+      try {
+        setAiSuccessRate(prev => ({ ...prev, loading: true, error: null }));
+        
+        const result = await calculateGoalSuccessRate(
+          student.entries,
+          student.name,
+          user?.uid,
+          userRole
+        );
+        
+        setAiSuccessRate({
+          rate: result.successRate,
+          analysis: result.analysis,
+          insights: result.insights,
+          loading: false,
+          error: null
+        });
+      } catch (error) {
+        console.error('Error calculating AI success rate:', error);
+        setAiSuccessRate({
+          rate: 0,
+          analysis: 'Unable to calculate success rate',
+          insights: ['Please try again later'],
+          loading: false,
+          error: 'Analysis failed'
+        });
+      }
+    };
+
+    calculateAISuccessRate();
+  }, [student.entries, student.name, user?.uid, userRole]);
+
+  // Handle remove user
+  const handleRemoveUser = async () => {
+    if (!showRemoveConfirm) {
+      setShowRemoveConfirm(true);
+      return;
+    }
+
+    try {
+      setIsRemoving(true);
+      await removeUser(student.studentId);
+      onBack(); // Go back to dashboard after successful removal
+    } catch (error) {
+      console.error('Failed to remove user:', error);
+      alert(`Failed to remove user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsRemoving(false);
+      setShowRemoveConfirm(false);
+    }
+  };
+
+  const cancelRemove = () => {
+    setShowRemoveConfirm(false);
+  };
+  
+  // Enhanced Analytics Calculations (Fallback/Comparison)
   const totalEntries = student.entries?.length || 0;
   const totalGoals = student.entries?.filter(e => e.goal)?.length || 0;
-  const completedGoals = student.entries?.filter(e => e.goal?.completed)?.length || 0;
+  
+  // TEMPORARY FIX: Consider goal "completed" if reflection + quiz are done OR explicitly marked complete
+  const completedGoals = student.entries?.filter(e => 
+    e.goal && (
+      e.goal.completed === true || 
+      (e.reflection && e.quizEvaluation) // Both reflection and quiz done = goal completed
+    )
+  )?.length || 0;
+  
   const totalReflections = student.entries?.filter(e => e.reflection)?.length || 0;
   const totalQuizzes = student.entries?.filter(e => e.quizEvaluation)?.length || 0;
   const goalCompletionRate = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
+
+  // DEBUG: Log the actual data structure
+  console.log('=== ANALYTICS DEBUG ===');
+  console.log('Student:', student.name);
+  console.log('Total entries:', totalEntries);
+  console.log('Entries with goals:', totalGoals);
+  console.log('Completed goals (with new logic):', completedGoals);
+  console.log('Goal completion rate:', goalCompletionRate);
+  console.log('Sample entries:', student.entries?.slice(0, 3));
+  console.log('========================');
 
   // Calculate active days and consistency
   const firstEntry = student.entries?.reduce((earliest, entry) => 
@@ -118,7 +228,15 @@ const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ s
 
   // Learning progression metrics
   const recentEntries = student.entries?.slice(-7) || []; // Last 7 entries
-  const recentGoalCompletion = recentEntries.filter(e => e.goal?.completed).length / Math.max(recentEntries.length, 1) * 100;
+  
+  // Apply same completion logic for recent entries
+  const recentCompletedGoals = recentEntries.filter(e => 
+    e.goal && (
+      e.goal.completed === true || 
+      (e.reflection && e.quizEvaluation)
+    )
+  ).length;
+  const recentGoalCompletion = recentCompletedGoals / Math.max(recentEntries.length, 1) * 100;
   
   // Confidence levels analysis
   const confidenceLevels = reflections.map(e => e.reflection?.confidenceLevel).filter(Boolean);
@@ -185,12 +303,42 @@ const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ s
                 </div>
               </div>
             </div>
-            <button
-              onClick={onBack}
-              className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              ← Back to Dashboard
-            </button>
+            <div className="flex items-center space-x-3">
+              {/* Remove User Button */}
+              {showRemoveConfirm ? (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleRemoveUser}
+                    disabled={isRemoving}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+                  >
+                    {isRemoving ? 'Removing...' : 'Confirm Delete'}
+                  </button>
+                  <button
+                    onClick={cancelRemove}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-xl transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleRemoveUser}
+                  className="inline-flex items-center justify-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  title={`Remove ${student.name}`}
+                >
+                  🗑️ Remove User
+                </button>
+              )}
+              
+              {/* Back Button */}
+              <button
+                onClick={onBack}
+                className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                ← Back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
 
@@ -241,12 +389,39 @@ const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ s
             <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-2xl">🎯</span>
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">Achievement Rate</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium text-green-600 dark:text-green-400">AI Success Rate</span>
+                  {aiSuccessRate.loading && (
+                    <div className="animate-spin h-3 w-3 border border-green-400 border-t-transparent rounded-full"></div>
+                  )}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-green-800 dark:text-green-200">{goalCompletionRate.toFixed(0)}%</div>
-              <div className="text-sm text-green-600 dark:text-green-400">
-                {completedGoals}/{totalGoals} goals done
-              </div>
+              
+              {aiSuccessRate.loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-green-200 dark:bg-green-700 rounded w-16 mb-2"></div>
+                  <div className="h-4 bg-green-200 dark:bg-green-700 rounded w-full"></div>
+                </div>
+              ) : aiSuccessRate.error ? (
+                <div>
+                  <div className="text-2xl font-bold text-red-800 dark:text-red-200">Error</div>
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    AI analysis failed
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-2xl font-bold text-green-800 dark:text-green-200">{aiSuccessRate.rate}%</div>
+                  <div className="text-sm text-green-600 dark:text-green-400">
+                    AI-powered analysis
+                  </div>
+                  {aiSuccessRate.analysis && (
+                    <div className="text-xs text-green-500 dark:text-green-400 mt-1 italic">
+                      "{aiSuccessRate.analysis}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
@@ -337,7 +512,7 @@ const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ s
                         <div key={index} className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
                           <span className="text-lg">{badge.icon}</span>
                           <div>
-                            <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{badge.title}</div>
+                            <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{badge.name}</div>
                             <div className="text-xs text-slate-500 dark:text-slate-400">{badge.description}</div>
                           </div>
                         </div>
@@ -357,6 +532,24 @@ const StudentAnalyticsDashboard: React.FC<StudentAnalyticsDashboardProps> = ({ s
                   )}
                 </div>
               </div>
+
+              {/* AI Insights Section */}
+              {!aiSuccessRate.loading && !aiSuccessRate.error && aiSuccessRate.insights.length > 0 && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <span className="text-2xl">🤖</span>
+                    <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">AI Insights & Recommendations</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {aiSuccessRate.insights.map((insight, index) => (
+                      <div key={index} className="flex items-start space-x-2">
+                        <span className="text-blue-500 mt-1">💡</span>
+                        <span className="text-sm text-blue-700 dark:text-blue-300">{insight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Quick Analytics Overview */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

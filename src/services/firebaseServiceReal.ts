@@ -4,6 +4,7 @@ import {
   getDoc, 
   setDoc, 
   updateDoc, 
+  deleteDoc,
   query, 
   where, 
   getDocs, 
@@ -12,7 +13,8 @@ import {
   addDoc,
   Timestamp 
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { deleteUser } from 'firebase/auth';
+import { db, auth } from '../lib/firebase';
 import { StudentData, AdminDashboardData, DailyEntry, Badge, AtRiskStudent, UserRole } from '../types';
 
 
@@ -569,5 +571,279 @@ export const initializeDefaultStudent = async (): Promise<void> => {
         }
     } catch (error) {
         console.error('Error initializing default student:', error);
+    }
+};
+
+// Function to remove a user and all their data (Admin only)
+export const removeUser = async (userId: string, adminUserId: string): Promise<void> => {
+    try {
+        console.log(`Admin ${adminUserId} attempting to remove user ${userId}`);
+
+        // Verify admin permissions
+        const adminProfile = await getUserProfile(adminUserId);
+        if (!adminProfile || adminProfile.role !== UserRole.ADMIN) {
+            throw new Error('Unauthorized: Only admins can remove users');
+        }
+
+        // Get user data to confirm existence
+        const userProfile = await getUserProfile(userId);
+        if (!userProfile) {
+            throw new Error('User not found');
+        }
+
+        // Prevent admin from removing themselves
+        if (userId === adminUserId) {
+            throw new Error('Cannot remove your own admin account');
+        }
+
+        // Prevent removing other admin users
+        if (userProfile.role === UserRole.ADMIN) {
+            throw new Error('Cannot remove other admin users');
+        }
+
+        console.log(`Removing user: ${userProfile.email} (${userProfile.displayName})`);
+
+        // 1. Delete all daily entries for this user
+        const entriesQuery = query(
+            collection(db, COLLECTIONS.DAILY_ENTRIES),
+            where('userId', '==', userId)
+        );
+        const entriesSnapshot = await getDocs(entriesQuery);
+        
+        const deletionPromises = [];
+        entriesSnapshot.docs.forEach(doc => {
+            deletionPromises.push(deleteDoc(doc.ref));
+        });
+
+        // 2. Delete student data
+        const studentDocRef = doc(db, COLLECTIONS.STUDENTS, userId);
+        deletionPromises.push(deleteDoc(studentDocRef));
+
+        // 3. Delete user profile
+        const userDocRef = doc(db, COLLECTIONS.USERS, userId);
+        deletionPromises.push(deleteDoc(userDocRef));
+
+        // 4. Remove from admin users if exists
+        const adminUserDocRef = doc(db, COLLECTIONS.ADMIN_USERS, userId);
+        deletionPromises.push(deleteDoc(adminUserDocRef));
+
+        // Execute all deletions
+        await Promise.all(deletionPromises);
+
+        console.log(`✅ Successfully removed user ${userId} and all associated data`);
+
+        // Note: We cannot delete the Firebase Auth user from the client side
+        // This would require Firebase Admin SDK on the server side
+        // For now, we just remove all Firestore data
+
+    } catch (error) {
+        console.error('Error removing user:', error);
+        throw error;
+    }
+};
+
+// Function to get list of all users (Admin only)
+export const getAllUsers = async (adminUserId: string): Promise<UserProfile[]> => {
+    try {
+        // Verify admin permissions
+        const adminProfile = await getUserProfile(adminUserId);
+        if (!adminProfile || adminProfile.role !== UserRole.ADMIN) {
+            throw new Error('Unauthorized: Only admins can view all users');
+        }
+
+        const usersQuery = query(collection(db, COLLECTIONS.USERS));
+        const snapshot = await getDocs(usersQuery);
+        
+        const users: UserProfile[] = [];
+        snapshot.docs.forEach(doc => {
+            users.push({ uid: doc.id, ...doc.data() } as UserProfile);
+        });
+
+        return users.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    } catch (error) {
+        console.error('Error getting all users:', error);
+        throw error;
+    }
+};
+
+// Enhanced user deletion options interface
+export interface UserDeletionOptions {
+    deleteAuthAccount?: boolean;
+    clearBrowserData?: boolean;
+    clearExternalData?: boolean;
+}
+
+// Function to clear browser storage and cache data
+const clearBrowserData = async (userId: string): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    
+    try {
+        console.log('🧹 Clearing browser storage...');
+        
+        // Clear localStorage entries related to this user or Firebase
+        const localKeysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+                key.includes(userId) || 
+                key.includes('firebase') || 
+                key.includes('gemini') ||
+                key.includes('auth') ||
+                key.includes('user')
+            )) {
+                localKeysToRemove.push(key);
+            }
+        }
+        localKeysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log(`Removed localStorage: ${key}`);
+        });
+        
+        // Clear sessionStorage
+        const sessionKeysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && (
+                key.includes(userId) || 
+                key.includes('firebase') || 
+                key.includes('gemini') ||
+                key.includes('auth')
+            )) {
+                sessionKeysToRemove.push(key);
+            }
+        }
+        sessionKeysToRemove.forEach(key => {
+            sessionStorage.removeItem(key);
+            console.log(`Removed sessionStorage: ${key}`);
+        });
+        
+        // Clear IndexedDB (Firebase offline data)
+        if ('indexedDB' in window) {
+            try {
+                const dbs = await indexedDB.databases();
+                for (const db of dbs) {
+                    if (db.name && (
+                        db.name.includes('firebase') || 
+                        db.name.includes('firestore')
+                    )) {
+                        indexedDB.deleteDatabase(db.name);
+                        console.log(`Deleted IndexedDB: ${db.name}`);
+                    }
+                }
+            } catch (idbError) {
+                console.error('Error clearing IndexedDB:', idbError);
+            }
+        }
+        
+        // Clear service worker cache
+        if ('serviceWorker' in navigator && 'caches' in window) {
+            try {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(async (cacheName) => {
+                        await caches.delete(cacheName);
+                        console.log(`Deleted cache: ${cacheName}`);
+                    })
+                );
+            } catch (cacheError) {
+                console.error('Error clearing cache:', cacheError);
+            }
+        }
+        
+        // Clear cookies related to the application
+        document.cookie.split(";").forEach((cookie) => {
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+            if (name.includes('firebase') || name.includes('auth') || name.includes('session')) {
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                console.log(`Cleared cookie: ${name}`);
+            }
+        });
+        
+        console.log('✅ Browser storage cleared successfully');
+    } catch (error) {
+        console.error('❌ Error clearing browser data:', error);
+        throw error;
+    }
+};
+
+// Function to clear external integrations data
+const clearExternalData = async (userId: string): Promise<void> => {
+    try {
+        console.log('🔗 Clearing external integrations...');
+        
+        // Placeholder for external API cleanup
+        // Add specific external service cleanup here:
+        
+        // Example: Clear Gemini API usage logs
+        // await fetch('/api/gemini/clear-logs', { method: 'POST', body: JSON.stringify({ userId }) });
+        
+        // Example: Clear analytics data
+        // await analytics.clearUser(userId);
+        
+        // Example: Clear third-party integrations
+        // await thirdPartyService.deleteUser(userId);
+        
+        console.log('✅ External data cleanup completed');
+    } catch (error) {
+        console.error('❌ Error clearing external data:', error);
+        throw error;
+    }
+};
+
+// Enhanced complete user deletion function
+export const removeUserCompletely = async (
+    userId: string, 
+    adminUserId: string, 
+    options: UserDeletionOptions = {}
+): Promise<void> => {
+    const { 
+        deleteAuthAccount = false, 
+        clearBrowserData: shouldClearBrowser = true, 
+        clearExternalData: shouldClearExternal = false 
+    } = options;
+    
+    try {
+        console.log(`🗑️ Starting complete deletion for user: ${userId}`);
+        console.log('Options:', options);
+        
+        // 1. Delete all Firestore data (existing logic)
+        await removeUser(userId, adminUserId);
+        console.log('✅ Firestore data deleted');
+        
+        // 2. Delete Firebase Authentication account (if requested and possible)
+        if (deleteAuthAccount) {
+            try {
+                // Note: We can only delete the current user's auth account from the client
+                // To delete other users' auth accounts, we would need Firebase Admin SDK on the server
+                const currentUser = auth.currentUser;
+                if (currentUser && currentUser.uid === userId) {
+                    await deleteUser(currentUser);
+                    console.log('✅ Firebase Auth account deleted');
+                } else {
+                    console.warn('⚠️ Cannot delete auth account: Requires server-side Firebase Admin SDK');
+                    throw new Error('Auth account deletion requires server-side implementation');
+                }
+            } catch (authError) {
+                console.error('❌ Error deleting auth account:', authError);
+                throw new Error(`Failed to delete authentication account: ${authError}`);
+            }
+        }
+        
+        // 3. Clear browser storage and cache (if requested)
+        if (shouldClearBrowser) {
+            await clearBrowserData(userId);
+        }
+        
+        // 4. Clear external integrations (if requested)
+        if (shouldClearExternal) {
+            await clearExternalData(userId);
+        }
+        
+        console.log('🎉 Complete user deletion successful');
+        
+    } catch (error) {
+        console.error('❌ Error in complete user deletion:', error);
+        throw error;
     }
 };

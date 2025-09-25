@@ -25,6 +25,13 @@ export interface Goal {
   smartScore?: SMARTScore;
   smartPercentage?: number;  // Calculated percentage score (0-100)
   completed: boolean;
+  aiEvaluation?: {
+    isCompleted: boolean;
+    confidence: number; // 0-100
+    reasoning: string;
+    aiAnalysis: string;
+    evaluatedAt: string;
+  };
 }
 
 export interface UserProgress {

@@ -3,6 +3,8 @@ import { StudentData, AdminDashboardData, UserRole, DailyEntry, Reflection, Quiz
 import { useAuth } from './AuthContext';
 import { updateUserProgress, initializeUserProgress, calculateAverageSmartScore } from '@/utils';
 import * as firebaseService from '@/services/firebaseServiceReal';
+import { UserDeletionOptions } from '@/services/firebaseServiceReal';
+import { evaluateGoalCompletion } from '@/services/geminiService';
 
 // Helper function to clean undefined values from objects
 const cleanObject = <T extends Record<string, any>>(obj: T): Partial<T> => {
@@ -23,6 +25,8 @@ interface AppContextType {
   selectedStudent: StudentData | null;
   viewStudentDetails: (studentId: string) => Promise<void>;
   clearStudentDetailsView: () => void;
+  removeUser: (userId: string) => Promise<void>;
+  removeUserCompletely: (userId: string, options?: UserDeletionOptions) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -124,17 +128,55 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const todayStr = new Date().toISOString().split('T')[0];
       const todaysEntry = studentData.entries.find(e => e.date.startsWith(todayStr));
       
-      if (todaysEntry) {
+      if (todaysEntry && todaysEntry.goal) {
         // Create clean entry without undefined values
-        const updatedEntry: DailyEntry = {
+        let updatedEntry: DailyEntry = {
           date: todaysEntry.date,
-          goal: todaysEntry.goal,
+          goal: { ...todaysEntry.goal }, // Copy the goal
           reflection
         };
         
         // Only add quizEvaluation if it exists
         if (todaysEntry.quizEvaluation) {
           updatedEntry.quizEvaluation = todaysEntry.quizEvaluation;
+        }
+
+        // 🤖 AI Goal Completion Evaluation
+        try {
+          console.log('🤖 Evaluating goal completion with AI...');
+          
+          const aiEvaluation = await evaluateGoalCompletion(
+            todaysEntry.goal.text,
+            reflection.text,
+            todaysEntry.quizEvaluation,
+            user.uid,
+            userRole
+          );
+
+          console.log('🎯 AI Goal Evaluation Result:', aiEvaluation);
+
+          // Update goal completion based on AI analysis
+          // Only mark as completed if AI is confident (>70%)
+          if (aiEvaluation.confidence >= 70) {
+            updatedEntry.goal.completed = aiEvaluation.isCompleted;
+            
+            // Add AI analysis to the entry for future reference
+            updatedEntry.goal.aiEvaluation = {
+              isCompleted: aiEvaluation.isCompleted,
+              confidence: aiEvaluation.confidence,
+              reasoning: aiEvaluation.reasoning,
+              aiAnalysis: aiEvaluation.aiAnalysis,
+              evaluatedAt: new Date().toISOString()
+            };
+
+            console.log(`✅ Goal ${aiEvaluation.isCompleted ? 'COMPLETED' : 'NOT COMPLETED'} by AI (${aiEvaluation.confidence}% confidence)`);
+          } else {
+            console.log(`⚠️ AI confidence too low (${aiEvaluation.confidence}%), keeping manual status`);
+          }
+
+        } catch (aiError) {
+          console.error('🚫 AI goal evaluation failed:', aiError);
+          // Continue without AI evaluation - don't block the reflection save
         }
         
         const updatedStudentData = await firebaseService.addOrUpdateDailyEntry(user.uid, updatedEntry);
@@ -193,9 +235,70 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedStudent(null);
   }, []);
 
+  const removeUser = useCallback(async (userId: string) => {
+    if (!user || userRole !== UserRole.ADMIN) {
+      throw new Error('Unauthorized: Only admins can remove users');
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await firebaseService.removeUser(userId, user.uid);
+      
+      // Refresh admin data to remove the user from the list
+      const updatedAdminData = await firebaseService.getAdminDashboardData();
+      setAdminData(updatedAdminData);
+      
+      // Clear selected student if it was the removed user
+      if (selectedStudent?.studentId === userId) {
+        setSelectedStudent(null);
+      }
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove user';
+      setError(errorMessage);
+      console.error('Remove user error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, userRole, selectedStudent?.studentId]);
+
+
+  const removeUserCompletely = useCallback(async (userId: string, options: UserDeletionOptions = {}) => {
+    if (!user || userRole !== UserRole.ADMIN) {
+      throw new Error('Unauthorized: Only admins can remove users');
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await firebaseService.removeUserCompletely(userId, user.uid, options);
+      
+      // Refresh admin data to remove the user from the list
+      const updatedAdminData = await firebaseService.getAdminDashboardData();
+      setAdminData(updatedAdminData);
+      
+      // Clear selected student if it was the removed user
+      if (selectedStudent?.studentId === userId) {
+        setSelectedStudent(null);
+      }
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to remove user completely';
+      setError(errorMessage);
+      console.error('Complete remove user error:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, userRole, selectedStudent?.studentId]);
+
 
   return (
-    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, addGoal, addReflection, addQuizResult, selectedStudent, viewStudentDetails, clearStudentDetailsView }}>
+    <AppContext.Provider value={{ userRole, studentData, adminData, loading, error, addGoal, addReflection, addQuizResult, selectedStudent, viewStudentDetails, clearStudentDetailsView, removeUser, removeUserCompletely }}>
       {children}
     </AppContext.Provider>
   );

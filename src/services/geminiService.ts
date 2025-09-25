@@ -305,3 +305,236 @@ export const testGeminiAPI = async (apiKey: string): Promise<boolean> => {
         return false;
     }
 };
+
+// Function to calculate AI-powered goal success rate
+export const calculateGoalSuccessRate = async (
+    studentEntries: any[], 
+    studentName: string,
+    userId?: string, 
+    userRole?: UserRole
+): Promise<{ successRate: number; analysis: string; insights: string[] }> => {
+    try {
+        const apiKey = await getApiKeyForUser(userId, userRole);
+        const ai = new GoogleGenAI({ apiKey });
+
+        const entriesData = studentEntries.map(entry => ({
+            date: entry.date,
+            goal: entry.goal?.text || 'No goal set',
+            goalCompleted: entry.goal?.completed || false,
+            hasReflection: !!entry.reflection,
+            reflectionDepth: entry.reflection?.depth || 0,
+            reflectionText: entry.reflection?.text || '',
+            hasQuiz: !!entry.quizEvaluation,
+            quizScore: entry.quizEvaluation ? (entry.quizEvaluation.score / entry.quizEvaluation.total * 100) : 0,
+            smartScore: entry.goal?.smartPercentage || 0
+        }));
+
+        const prompt = `
+        You are an AI learning analytics expert. Analyze the goal achievement data for student "${studentName}" and calculate a comprehensive goal success rate.
+
+        Student Data:
+        ${JSON.stringify(entriesData, null, 2)}
+
+        Please analyze this data and provide:
+        1. A success rate percentage (0-100) based on:
+           - Goal completion status
+           - Quality of reflection (depth and content)
+           - Quiz performance 
+           - Consistency of engagement
+           - Overall learning progression
+
+        2. A brief analysis explaining the success rate
+        3. 3-5 actionable insights for improvement
+
+        Consider a goal "successful" if:
+        - Explicitly marked as completed, OR
+        - Has meaningful reflection (depth >= 3) AND decent quiz performance (>60%), OR
+        - Shows clear learning progression and engagement
+
+        Respond in this exact JSON format:
+        {
+            "successRate": [number 0-100],
+            "analysis": "[2-3 sentence explanation]",
+            "insights": ["insight1", "insight2", "insight3"]
+        }
+        `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: prompt,
+        });
+
+        const responseText = response.text.trim();
+        
+        // Try to parse JSON response
+        try {
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                return {
+                    successRate: Math.max(0, Math.min(100, result.successRate || 0)),
+                    analysis: result.analysis || 'Analysis not available',
+                    insights: result.insights || []
+                };
+            }
+        } catch (parseError) {
+            console.error('Error parsing Gemini response:', parseError);
+        }
+
+        // Fallback calculation if AI response parsing fails
+        const totalGoals = entriesData.filter(e => e.goal !== 'No goal set').length;
+        const completedGoals = entriesData.filter(e => 
+            e.goalCompleted || 
+            (e.hasReflection && e.reflectionDepth >= 3 && e.hasQuiz && e.quizScore > 60)
+        ).length;
+        
+        const fallbackRate = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
+
+        return {
+            successRate: Math.round(fallbackRate),
+            analysis: 'AI analysis temporarily unavailable. Using basic calculation.',
+            insights: ['Continue setting daily goals', 'Focus on deeper reflection', 'Maintain quiz consistency']
+        };
+
+    } catch (error) {
+        console.error('Error calculating AI goal success rate:', error);
+        
+        // Fallback to simple calculation
+        const totalGoals = studentEntries.filter(e => e.goal).length;
+        const completedGoals = studentEntries.filter(e => 
+            e.goal?.completed || (e.reflection && e.quizEvaluation)
+        ).length;
+        
+        const fallbackRate = totalGoals > 0 ? (completedGoals / totalGoals) * 100 : 0;
+
+        return {
+            successRate: Math.round(fallbackRate),
+            analysis: 'Unable to perform AI analysis. Using basic calculation.',
+            insights: ['Set more specific goals', 'Improve reflection quality', 'Complete daily quizzes']
+        };
+    }
+};
+
+// Function to evaluate if a goal is actually completed using AI analysis
+export const evaluateGoalCompletion = async (
+    goal: string,
+    reflection: string,
+    quizResults?: { score: number; total: number; feedback?: string },
+    userId?: string,
+    userRole?: UserRole
+): Promise<{ 
+    isCompleted: boolean; 
+    confidence: number; 
+    reasoning: string; 
+    aiAnalysis: string 
+}> => {
+    try {
+        const apiKey = await getApiKeyForUser(userId, userRole);
+        const ai = new GoogleGenAI({ apiKey });
+
+        const quizScore = quizResults ? Math.round((quizResults.score / quizResults.total) * 100) : 0;
+        const hasQuiz = !!quizResults;
+
+        const prompt = `
+        You are an AI learning assessment expert. Analyze whether this student has actually completed their goal based on their reflection and quiz performance.
+
+        GOAL: "${goal}"
+        
+        REFLECTION: "${reflection}"
+        
+        QUIZ PERFORMANCE: ${hasQuiz ? `${quizResults!.score}/${quizResults!.total} (${quizScore}%)` : 'No quiz taken'}
+        ${quizResults?.feedback ? `Quiz Feedback: ${quizResults.feedback}` : ''}
+
+        ANALYSIS CRITERIA:
+        1. Look for concrete evidence of goal completion in the reflection
+        2. Check if reflection mentions specific actions taken toward the goal
+        3. Evaluate if quiz performance aligns with goal achievement
+        4. Consider if the student demonstrates understanding/progress
+        5. Look for phrases indicating completion vs just effort/attempt
+
+        EVALUATION GUIDELINES:
+        - COMPLETED (80-100% confidence): Clear evidence of goal achievement, specific accomplishments mentioned
+        - PARTIALLY COMPLETED (40-79% confidence): Some progress shown but goal not fully achieved
+        - NOT COMPLETED (0-39% confidence): No clear evidence of completion, only mentions effort or planning
+
+        Respond in this exact JSON format:
+        {
+            "isCompleted": [true/false],
+            "confidence": [0-100 number],
+            "reasoning": "[2-3 sentence explanation of your decision]",
+            "aiAnalysis": "[Brief analysis of what the student accomplished vs what was planned]"
+        }
+        `;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
+            contents: prompt,
+        });
+
+        const responseText = response.text.trim();
+        
+        // Try to parse JSON response
+        try {
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const result = JSON.parse(jsonMatch[0]);
+                return {
+                    isCompleted: result.isCompleted || false,
+                    confidence: Math.max(0, Math.min(100, result.confidence || 0)),
+                    reasoning: result.reasoning || 'AI analysis completed',
+                    aiAnalysis: result.aiAnalysis || 'Analysis not available'
+                };
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI goal completion response:', parseError);
+        }
+
+        // Fallback analysis if AI response parsing fails
+        const reflectionLength = reflection.length;
+        const reflectionQuality = reflectionLength > 100 ? 'detailed' : reflectionLength > 50 ? 'moderate' : 'brief';
+        
+        // Simple fallback logic
+        const hasSpecificWords = /completed|finished|accomplished|achieved|done|success/i.test(reflection);
+        const hasProgressWords = /progress|working|trying|learning|started/i.test(reflection);
+        
+        let fallbackCompleted = false;
+        let fallbackConfidence = 0;
+        let fallbackReasoning = '';
+
+        if (hasSpecificWords && quizScore > 70) {
+            fallbackCompleted = true;
+            fallbackConfidence = 85;
+            fallbackReasoning = 'Student mentioned completion and performed well on quiz.';
+        } else if (hasSpecificWords) {
+            fallbackCompleted = true;
+            fallbackConfidence = 65;
+            fallbackReasoning = 'Student indicated completion in reflection.';
+        } else if (hasProgressWords && quizScore > 60) {
+            fallbackCompleted = false;
+            fallbackConfidence = 45;
+            fallbackReasoning = 'Student shows progress but no clear indication of completion.';
+        } else {
+            fallbackCompleted = false;
+            fallbackConfidence = 20;
+            fallbackReasoning = 'No clear evidence of goal completion found.';
+        }
+
+        return {
+            isCompleted: fallbackCompleted,
+            confidence: fallbackConfidence,
+            reasoning: fallbackReasoning,
+            aiAnalysis: `Fallback analysis: ${reflectionQuality} reflection with ${hasSpecificWords ? 'completion indicators' : 'progress indicators'}`
+        };
+
+    } catch (error) {
+        console.error('Error evaluating goal completion:', error);
+        
+        // Ultimate fallback
+        return {
+            isCompleted: false,
+            confidence: 0,
+            reasoning: 'Unable to evaluate goal completion due to technical error.',
+            aiAnalysis: 'Analysis failed'
+        };
+    }
+};
