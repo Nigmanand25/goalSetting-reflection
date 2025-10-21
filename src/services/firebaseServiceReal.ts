@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { deleteUser } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
-import { StudentData, AdminDashboardData, DailyEntry, Badge, AtRiskStudent, UserRole } from '../types';
+import { StudentData, AdminDashboardData, DailyEntry, Badge, AtRiskStudent, UserRole, DailyEngagement, DailyEngagementMetrics } from '../types';
 
 
 // User profile interface for Firebase
@@ -135,6 +135,134 @@ const calculateConsistencyAndStreak = (entries: DailyEntry[]): { consistencyScor
     return { consistencyScore, streak };
 };
 
+// Calculate comprehensive daily engagement metrics
+const calculateDailyEngagement = (entries: DailyEntry[]): DailyEngagementMetrics => {
+    if (entries.length === 0) {
+        return {
+            dailyEngagement: [],
+            averageDaily: 0,
+            activeDays: 0,
+            streakDays: 0,
+            weeklyTrend: 0,
+            monthlyTrend: 0
+        };
+    }
+
+    // Get last 30 days
+    const today = new Date();
+    const last30Days: Date[] = [];
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        last30Days.push(date);
+    }
+
+    // Calculate engagement for each day
+    const dailyEngagement: DailyEngagement[] = last30Days.map(date => {
+        const dateString = date.toISOString().split('T')[0];
+        const dayEntries = entries.filter(entry => {
+            const entryDate = new Date(entry.date);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate.getTime() === date.getTime();
+        });
+
+        let engagementScore = 0;
+        let activitiesCompleted = 0;
+        let hasGoal = false;
+        let hasReflection = false;
+        let hasQuiz = false;
+
+        dayEntries.forEach(entry => {
+            // Goal setting activity (30 points)
+            if (entry.goal) {
+                hasGoal = true;
+                activitiesCompleted++;
+                engagementScore += 30;
+                
+                // Bonus for completed goals (10 extra points)
+                if (entry.goal.completed) {
+                    engagementScore += 10;
+                }
+            }
+
+            // Reflection quality (10-50 points based on depth)
+            if (entry.reflection) {
+                hasReflection = true;
+                activitiesCompleted++;
+                engagementScore += entry.reflection.depth * 10; // 10-50 points
+                
+                // Bonus for detailed reflections (depth 4+)
+                if (entry.reflection.depth >= 4) {
+                    engagementScore += 5;
+                }
+            }
+
+            // Quiz completion (0-25 points based on performance)
+            if (entry.quizEvaluation) {
+                hasQuiz = true;
+                activitiesCompleted++;
+                const quizPerformance = (entry.quizEvaluation.score / entry.quizEvaluation.total) * 100;
+                engagementScore += Math.round(quizPerformance * 0.25); // 0-25 points
+                
+                // Bonus for excellent performance (90%+)
+                if (quizPerformance >= 90) {
+                    engagementScore += 5;
+                }
+            }
+        });
+
+        // Cap engagement score at 100
+        engagementScore = Math.min(100, engagementScore);
+
+        return {
+            date: dateString,
+            engagementScore,
+            activitiesCompleted,
+            hasGoal,
+            hasReflection,
+            hasQuiz
+        };
+    });
+
+    // Calculate metrics
+    const totalEngagement = dailyEngagement.reduce((sum, day) => sum + day.engagementScore, 0);
+    const averageDaily = totalEngagement / 30;
+    const activeDays = dailyEngagement.filter(day => day.engagementScore > 0).length;
+
+    // Calculate current engagement streak
+    let streakDays = 0;
+    for (let i = dailyEngagement.length - 1; i >= 0; i--) {
+        if (dailyEngagement[i].engagementScore > 0) {
+            streakDays++;
+        } else {
+            break;
+        }
+    }
+
+    // Calculate trends
+    const last7Days = dailyEngagement.slice(-7);
+    const previous7Days = dailyEngagement.slice(-14, -7);
+    const last7Average = last7Days.reduce((sum, day) => sum + day.engagementScore, 0) / 7;
+    const previous7Average = previous7Days.reduce((sum, day) => sum + day.engagementScore, 0) / 7;
+    const weeklyTrend = previous7Average > 0 ? ((last7Average - previous7Average) / previous7Average) * 100 : 0;
+
+    const last14Days = dailyEngagement.slice(-14);
+    const previous14Days = dailyEngagement.slice(-28, -14);
+    const last14Average = last14Days.reduce((sum, day) => sum + day.engagementScore, 0) / 14;
+    const previous14Average = previous14Days.reduce((sum, day) => sum + day.engagementScore, 0) / 14;
+    const monthlyTrend = previous14Average > 0 ? ((last14Average - previous14Average) / previous14Average) * 100 : 0;
+
+    return {
+        dailyEngagement,
+        averageDaily: Math.round(averageDaily * 10) / 10,
+        activeDays,
+        streakDays,
+        weeklyTrend: Math.round(weeklyTrend * 10) / 10,
+        monthlyTrend: Math.round(monthlyTrend * 10) / 10
+    };
+};
+
 // Get student data from Firestore (now uses authenticated user ID)
 export const getStudentData = async (studentId: string, displayName?: string): Promise<StudentData> => {
     try {
@@ -188,6 +316,10 @@ export const getStudentData = async (studentId: string, displayName?: string): P
         studentData.consistencyScore = consistencyScore;
         studentData.streak = streak;
         
+        // Calculate daily engagement metrics
+        const dailyEngagement = calculateDailyEngagement(entries);
+        studentData.dailyEngagement = dailyEngagement;
+        
         // Check and award badges
         studentData = checkAndAwardBadges(studentData);
         
@@ -195,7 +327,8 @@ export const getStudentData = async (studentId: string, displayName?: string): P
         await updateDoc(doc(db, COLLECTIONS.STUDENTS, studentId), {
             badges: studentData.badges,
             consistencyScore: studentData.consistencyScore,
-            streak: studentData.streak
+            streak: studentData.streak,
+            dailyEngagement: studentData.dailyEngagement
         });
 
         return studentData;

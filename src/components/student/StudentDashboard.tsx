@@ -51,15 +51,15 @@ const LoadingSkeleton: React.FC = () => (
             </div>
         </div>
         
-        <style jsx>{`
+        <style>{`
+            @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
             .shimmer {
                 background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
                 background-size: 200% 100%;
                 animation: shimmer 1.5s infinite;
-            }
-            @keyframes shimmer {
-                0% { background-position: -200% 0; }
-                100% { background-position: 200% 0; }
             }
             .dark .shimmer {
                 background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
@@ -261,7 +261,7 @@ const StudentDashboard: React.FC = () => {
 
       {/* Quick Stats (visible on all views) */}
       {currentView !== 'progress' && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 p-5 rounded-2xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-blue-100 dark:border-blue-800">
             <div className="text-3xl mb-2">🔥</div>
             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -284,6 +284,28 @@ const StudentDashboard: React.FC = () => {
                 style={{ width: `${studentData.consistencyScore}%` }}
               ></div>
             </div>
+          </div>
+          <div className="bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-900/20 p-5 rounded-2xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-orange-100 dark:border-orange-800">
+            <div className="text-3xl mb-2">⚡</div>
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              {studentData.dailyEngagement ? Math.round(studentData.dailyEngagement.averageDaily) : studentData.consistencyScore}%
+            </div>
+            <div className="text-sm text-orange-600 dark:text-orange-400 font-medium">
+              {studentData.dailyEngagement ? 'Daily Engagement' : 'Consistency'}
+            </div>
+            <div className="w-full bg-orange-200 dark:bg-orange-800 rounded-full h-1.5 mt-2">
+              <div
+                className="bg-orange-500 h-1.5 rounded-full transition-all duration-1000"
+                style={{ width: `${studentData.dailyEngagement ? Math.round(studentData.dailyEngagement.averageDaily) : studentData.consistencyScore}%` }}
+              ></div>
+            </div>
+            {studentData.dailyEngagement && studentData.dailyEngagement.weeklyTrend !== 0 && (
+              <div className={`text-xs mt-1 ${
+                studentData.dailyEngagement.weeklyTrend > 0 ? 'text-green-500' : 'text-red-500'
+              }`}>
+                {studentData.dailyEngagement.weeklyTrend > 0 ? '↗' : '↘'} {Math.abs(studentData.dailyEngagement.weeklyTrend).toFixed(1)}% vs last week
+              </div>
+            )}
           </div>
           <div className="bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 p-5 rounded-2xl text-center shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-purple-100 dark:border-purple-800">
             <div className="text-3xl mb-2">📊</div>

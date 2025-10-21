@@ -8,7 +8,10 @@ interface EngagementAnalyticsProps {
 }
 
 const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({ student, entries }) => {
-  // Calculate engagement metrics
+  // Use the new daily engagement metrics from student data
+  const dailyEngagement = student.dailyEngagement;
+  
+  // Fallback to old calculation if new metrics aren't available
   const totalDays = entries.length;
   const daysWithGoals = entries.filter(e => e.goal).length;
   const daysWithReflections = entries.filter(e => e.reflection).length;
@@ -43,31 +46,39 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({ student, entr
     return acc;
   }, {} as Record<string, { goals: number; reflections: number; quizzes: number }>);
 
-  // Calculate engagement score (0-100)
-  const engagementScore = Math.min(100, Math.round(
-    (daysWithGoals * 0.3 + 
-     daysWithReflections * 0.4 + 
-     daysWithQuizzes * 0.2 + 
-     (completedGoals / Math.max(daysWithGoals, 1)) * 0.1 * 100)
-  ));
+  // Use new engagement metrics if available, otherwise fallback to old calculation
+  const engagementScore = dailyEngagement ? 
+    Math.round(dailyEngagement.averageDaily) : 
+    Math.min(100, Math.round(
+      (daysWithGoals * 0.3 + 
+       daysWithReflections * 0.4 + 
+       daysWithQuizzes * 0.2 + 
+       (completedGoals / Math.max(daysWithGoals, 1)) * 0.1 * 100)
+    ));
 
   // Activity frequency
   const totalActivities = daysWithGoals + daysWithReflections + daysWithQuizzes;
-  const avgActivitiesPerWeek = totalDays > 0 ? (totalActivities / totalDays) * 7 : 0;
+  const avgActivitiesPerWeek = dailyEngagement ? 
+    (dailyEngagement.activeDays / 30) * 7 : 
+    (totalDays > 0 ? (totalActivities / totalDays) * 7 : 0);
+
+  // Use new engagement trend data if available
+  const activityTrend = dailyEngagement ? dailyEngagement.weeklyTrend : 0;
 
   // Get most active day
   const mostActiveDay = Object.entries(weeklyActivity).reduce((a, b) => 
     weeklyActivity[a[0]] > weeklyActivity[b[0]] ? a : b
   );
 
-  // Recent activity trend (last 30 days vs previous 30 days)
-  const last30Days = sortedEntries.slice(-30);
-  const previous30Days = sortedEntries.slice(-60, -30);
-  const recentActivityScore = last30Days.length > 0 ? 
-    (last30Days.filter(e => e.goal || e.reflection || e.quizEvaluation).length / last30Days.length) * 100 : 0;
-  const previousActivityScore = previous30Days.length > 0 ? 
-    (previous30Days.filter(e => e.goal || e.reflection || e.quizEvaluation).length / previous30Days.length) * 100 : 0;
-  const activityTrend = recentActivityScore - previousActivityScore;
+  // Fallback trend calculation if new metrics aren't available
+  if (!dailyEngagement) {
+    const last30Days = sortedEntries.slice(-30);
+    const previous30Days = sortedEntries.slice(-60, -30);
+    const recentActivityScore = last30Days.length > 0 ? 
+      (last30Days.filter(e => e.goal || e.reflection || e.quizEvaluation).length / last30Days.length) * 100 : 0;
+    const previousActivityScore = previous30Days.length > 0 ? 
+      (previous30Days.filter(e => e.goal || e.reflection || e.quizEvaluation).length / previous30Days.length) * 100 : 0;
+  }
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const maxWeeklyActivity = Math.max(...(Object.values(weeklyActivity) as number[]), 1);
@@ -95,21 +106,15 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({ student, entr
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="text-center">
           <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {student.streak}
+            {dailyEngagement ? dailyEngagement.streakDays : student.streak}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Current Streak</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Engagement Streak</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {student.consistencyScore}%
+            {dailyEngagement ? dailyEngagement.activeDays : totalDays}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Consistency</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {totalDays}
-          </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Active Days</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Active Days (30d)</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
@@ -117,7 +122,57 @@ const EngagementAnalytics: React.FC<EngagementAnalyticsProps> = ({ student, entr
           </div>
           <div className="text-xs text-slate-500 dark:text-slate-400">Activities/Week</div>
         </div>
+        <div className="text-center">
+          <div className={`text-lg font-bold ${
+            activityTrend > 0 ? 'text-green-600' : 
+            activityTrend < 0 ? 'text-red-600' : 'text-slate-600'
+          }`}>
+            {activityTrend > 0 ? '+' : ''}{activityTrend.toFixed(1)}%
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">Weekly Trend</div>
+        </div>
       </div>
+
+      {/* Daily Engagement Chart */}
+      {dailyEngagement && (
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center">
+            <span className="text-lg mr-2">📈</span>
+            Daily Engagement (Last 30 Days)
+          </h4>
+          <div className="flex items-end space-x-1 h-24 bg-slate-50 dark:bg-slate-900 rounded-lg p-2">
+            {dailyEngagement.dailyEngagement.map((day, index) => {
+              const height = Math.max(2, (day.engagementScore / 100) * 80);
+              const isToday = index === dailyEngagement.dailyEngagement.length - 1;
+              const dayNumber = new Date(day.date).getDate();
+              
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center">
+                  <div
+                    className={`w-full rounded-t transition-all duration-300 ${
+                      day.engagementScore >= 80 ? 'bg-green-500' :
+                      day.engagementScore >= 60 ? 'bg-yellow-500' :
+                      day.engagementScore >= 40 ? 'bg-orange-500' :
+                      day.engagementScore > 0 ? 'bg-red-400' : 'bg-slate-300'
+                    } ${isToday ? 'ring-2 ring-blue-400' : ''}`}
+                    style={{ height: `${height}px` }}
+                    title={`${day.date}: ${day.engagementScore}% engagement, ${day.activitiesCompleted} activities`}
+                  ></div>
+                  {(index % 5 === 0 || isToday) && (
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      {dayNumber}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
+            <span>30 days ago</span>
+            <span>Today</span>
+          </div>
+        </div>
+      )}
 
       {/* Activity Breakdown */}
       <div className="mb-6">

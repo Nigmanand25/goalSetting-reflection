@@ -90,6 +90,25 @@ export interface Badge {
   icon: string; // Emoji or SVG string
 }
 
+export interface DailyEngagement {
+  date: string;
+  engagementScore: number; // 0-100
+  activitiesCompleted: number;
+  hasGoal: boolean;
+  hasReflection: boolean;
+  hasQuiz: boolean;
+  timeSpent?: number; // minutes spent on platform
+}
+
+export interface DailyEngagementMetrics {
+  dailyEngagement: DailyEngagement[];
+  averageDaily: number;
+  activeDays: number;
+  streakDays: number;
+  weeklyTrend: number; // percentage change from last week
+  monthlyTrend: number; // percentage change from last month
+}
+
 export interface StudentData {
   studentId: string;
   name: string;
@@ -98,6 +117,7 @@ export interface StudentData {
   entries: DailyEntry[];
   badges: Badge[];
   progress?: UserProgress;       // Add progress tracking
+  dailyEngagement?: DailyEngagementMetrics; // Add daily engagement tracking
 }
 
 export interface AtRiskStudent {
